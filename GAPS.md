@@ -29,23 +29,6 @@
 
 ---
 
-## Documentos da Consulta
-
-**Status: backend parcialmente feito, frontend não feito**
-
-- `GET /api/consultas/:id/documentos` existe e funciona
-- Não existe endpoint de upload (`POST /api/consultas/:id/documentos`)
-- Botão "Ver documentos" no frontend não tem `onPress` handler
-- Não há tela/modal para listar ou fazer upload de documentos
-
-**O que falta:**
-- Endpoint de upload com suporte a multipart/form-data
-- Handler no botão "Ver documentos" chamando o GET
-- Tela ou modal listando os documentos
-- UI de upload de arquivo (pode aproveitar `expo-document-picker` ou `expo-image-picker`)
-
----
-
 ## Anamnese
 
 **Status: não integrado**
