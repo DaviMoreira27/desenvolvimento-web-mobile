@@ -7,7 +7,7 @@ import type { Request, Response, NextFunction } from "express";
 
 const mockUser = { id: 1, email: "doctor@test.com", tipo: "medico" as const };
 
-jest.mock("../../middlewares/auth", () => ({
+jest.mock("../../src/middlewares/auth", () => ({
   authenticate: (req: Request, _res: Response, next: NextFunction) => {
     (req as any).user = mockUser;
     next();
@@ -17,7 +17,7 @@ jest.mock("../../middlewares/auth", () => ({
 const mockUploadBlob = jest.fn().mockResolvedValue(undefined);
 const mockGenerateSasUrl = jest.fn().mockResolvedValue("https://storage.blob.core.windows.net/container/blob?sas=token123");
 
-jest.mock("../../services/azureStorage", () => ({
+jest.mock("../../src/services/azureStorage", () => ({
   azureStorage: {
     uploadBlob: mockUploadBlob,
     generateSasUrl: mockGenerateSasUrl,
@@ -27,7 +27,7 @@ jest.mock("../../services/azureStorage", () => ({
 const mockSelect = jest.fn();
 const mockInsert = jest.fn();
 
-jest.mock("../../db", () => ({
+jest.mock("../../src/db", () => ({
   db: {
     select: mockSelect,
     insert: mockInsert,
@@ -36,7 +36,7 @@ jest.mock("../../db", () => ({
 
 import express from "express";
 import request from "supertest";
-import consultasRouter from "../../routes/consultas";
+import consultasRouter from "../../src/routes/consultas";
 
 const app = express();
 app.use(express.json());

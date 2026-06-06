@@ -1,5 +1,5 @@
 import { Stack } from "expo-router";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import {
   ActivityIndicator,
   Modal,
@@ -16,6 +16,7 @@ import { useAgendarConsulta } from "../../hooks/useAgendarConsulta";
 import { useMedicos } from "../../hooks/useMedicos";
 import { useModal } from "../../hooks/useModal";
 import { useToast } from "../../hooks/useToast";
+import { useSlotsLivres } from "../../hooks/useSlotsLivres";
 
 export default function AppLayout() {
   const { token, isLoading } = useAuth();
@@ -38,6 +39,17 @@ export default function AppLayout() {
     "presencial" | "teleconsulta"
   >("presencial");
 
+  const formattedDate = useMemo(
+    () => (selectedDate ? selectedDate.toISOString().split("T")[0]! : null),
+    [selectedDate]
+  );
+
+  const {
+    slots: availableSlots,
+    isLoading: loadingSlots,
+    error: slotsError,
+  } = useSlotsLivres(selectedDoctorId, formattedDate);
+
   if (isLoading) {
     return (
       <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
@@ -53,7 +65,7 @@ export default function AppLayout() {
   const getNextDays = () => {
     const days = [];
     const today = new Date();
-    for (let i = 1; i <= 30; i++) {
+    for (let i = 1; i <= 14; i++) {
       const date = new Date(today);
       date.setDate(today.getDate() + i);
       days.push(date);
@@ -64,19 +76,17 @@ export default function AppLayout() {
   const selectedDoctor = medicos.find((m) => m.id === selectedDoctorId);
 
   const handleAgendar = async () => {
-    if (!selectedDoctorId || !selectedDate || !selectedTime) {
+    if (!selectedDoctorId || !formattedDate || !selectedTime) {
       showToast("error", "Selecione médico, data e horário.");
       return;
     }
 
-    const [hours, minutes] = selectedTime.split(":").map(Number);
-    const dataHora = new Date(selectedDate);
-    dataHora.setHours(hours, minutes, 0, 0);
+    const dataHoraISO = `${formattedDate}T${selectedTime}:00.000Z`;
 
     try {
       await agendar({
         medicoId: selectedDoctorId,
-        dataHora: dataHora.toISOString(),
+        dataHora: dataHoraISO,
         tipo: selectedType,
       });
 
@@ -185,12 +195,7 @@ export default function AppLayout() {
 
                   <Text style={styles.sectionLabel}>Selecione a data</Text>
 
-                  <ScrollView
-                    horizontal
-                    showsHorizontalScrollIndicator={false}
-                    style={styles.datesContainer}
-                    contentContainerStyle={styles.datesContent}
-                  >
+                  <View style={styles.datesContainer}>
                     {getNextDays().map((date, i) => (
                       <TouchableOpacity
                         key={i}
@@ -215,31 +220,45 @@ export default function AppLayout() {
                         </Text>
                       </TouchableOpacity>
                     ))}
-                  </ScrollView>
+                  </View>
 
                   <Text style={styles.sectionLabel}>Horários disponíveis</Text>
 
-                  <View style={styles.times}>
-                    {["08:00", "10:00", "14:00", "16:00", "18:00"].map((time, i) => (
-                      <TouchableOpacity
-                        key={i}
-                        style={[
-                          styles.timeButton,
-                          selectedTime === time && styles.selectedTimeButton,
-                        ]}
-                        onPress={() => setSelectedTime(time)}
-                      >
-                        <Text
+                  {loadingSlots ? (
+                    <ActivityIndicator
+                      size="small"
+                      color="#19c10f"
+                      style={{ marginVertical: 16 }}
+                    />
+                  ) : slotsError ? (
+                    <Text style={styles.slotErrorText}>{slotsError}</Text>
+                  ) : !selectedDate ? (
+                    <Text style={styles.emptyText}>Selecione uma data para ver os horários disponíveis</Text>
+                  ) : availableSlots.length === 0 ? (
+                    <Text style={styles.emptyText}>Nenhum horário disponível para esta data</Text>
+                  ) : (
+                    <View style={styles.times}>
+                      {availableSlots.map((slot, i) => (
+                        <TouchableOpacity
+                          key={i}
                           style={[
-                            styles.timeButtonText,
-                            selectedTime === time && styles.selectedTimeButtonText,
+                            styles.timeButton,
+                            selectedTime === slot.horarioInicio && styles.selectedTimeButton,
                           ]}
+                          onPress={() => setSelectedTime(slot.horarioInicio)}
                         >
-                          {time}
-                        </Text>
-                      </TouchableOpacity>
-                    ))}
-                  </View>
+                          <Text
+                            style={[
+                              styles.timeButtonText,
+                              selectedTime === slot.horarioInicio && styles.selectedTimeButtonText,
+                            ]}
+                          >
+                            {slot.horarioInicio}
+                          </Text>
+                        </TouchableOpacity>
+                      ))}
+                    </View>
+                  )}
 
                   <Text style={styles.sectionLabel}>Tipo de Consulta</Text>
 
@@ -285,9 +304,12 @@ export default function AppLayout() {
                     </TouchableOpacity>
 
                     <TouchableOpacity
-                      style={[styles.button, agendando && styles.buttonDisabled]}
+                      style={[
+                        styles.button,
+                        (agendando || loadingSlots || !!slotsError) && styles.buttonDisabled,
+                      ]}
                       onPress={handleAgendar}
-                      disabled={agendando || !selectedDate || !selectedTime}
+                      disabled={agendando || loadingSlots || !!slotsError || !selectedDate || !selectedTime}
                     >
                       {agendando ? (
                         <ActivityIndicator color="#fff" size="small" />
@@ -401,10 +423,8 @@ const styles = StyleSheet.create({
   },
 
   datesContainer: {
-    marginTop: 0,
-  },
-
-  datesContent: {
+    flexDirection: "row",
+    flexWrap: "wrap",
     gap: 8,
     paddingVertical: 4,
   },
@@ -547,5 +567,12 @@ const styles = StyleSheet.create({
     color: "#94a3b8",
     marginTop: 20,
     fontSize: 14,
+  },
+
+  slotErrorText: {
+    color: "#ef4444",
+    fontSize: 13,
+    marginTop: 8,
+    textAlign: "center",
   },
 });

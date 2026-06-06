@@ -11,7 +11,7 @@
 **O que falta:**
 - Lógica de disponibilidade do médico (horários livres x ocupados)
 - Validação de conflito no `POST /api/consultas`
-
+- Medico selecionar dias e horario que atende
 ---
 
 ## Link Meet (Teleconsulta)
@@ -58,7 +58,6 @@
 | Link Meet | Nao feito | Botao sem handler |
 | Anamnese (salvar/editar) | Nao feito | Sem integracao |
 | Upload arquivos da anamnese | Nao feito | UI existe |
-Medico selecionar dias e horario que atende
 Historico de Saude
 Listar anamneses para o medico
 Listar pagamentos recebidos para o medico

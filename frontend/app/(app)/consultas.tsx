@@ -143,7 +143,7 @@ export default function Consultas() {
           <Text style={styles.emptyTitle}>Nenhuma consulta agendada</Text>
           {!isMedico && (
             <Text style={styles.emptySubtitle}>
-              Clique em "＋ Agendar" para criar sua primeira consulta.
+              Clique em &quot;＋ Agendar&quot; para criar sua primeira consulta.
             </Text>
           )}
         </View>

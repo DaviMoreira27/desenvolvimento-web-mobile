@@ -1,4 +1,5 @@
 import { renderHook, act, waitFor } from "@testing-library/react-native";
+import { useDocumentosConsulta } from "../hooks/useDocumentosConsulta";
 
 // Mock useAuth
 jest.mock("../hooks/auth/useAuth", () => ({
@@ -21,8 +22,6 @@ const mockGetDocumentAsync = jest.fn();
 jest.mock("expo-document-picker", () => ({
   getDocumentAsync: (...args: unknown[]) => mockGetDocumentAsync(...args),
 }));
-
-import { useDocumentosConsulta } from "../hooks/useDocumentosConsulta";
 
 const fakeDocuments = [
   {

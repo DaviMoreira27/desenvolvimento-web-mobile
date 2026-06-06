@@ -1,4 +1,5 @@
-import { renderHook, waitFor } from "@testing-library/react-native";
+import { renderHook, waitFor, act } from "@testing-library/react-native";
+import { useUserProfile } from "../hooks/useUserProfile";
 
 const mockApiFetch = jest.fn();
 
@@ -9,8 +10,6 @@ jest.mock("../lib/api", () => ({
 jest.mock("../hooks/auth/useAuth", () => ({
   useAuth: () => ({ token: "test-token" }),
 }));
-
-import { useUserProfile } from "../hooks/useUserProfile";
 
 const fakeProfile = {
   id: 1,
@@ -60,7 +59,9 @@ describe("useUserProfile", () => {
       expect(result.current.profile?.nome).toBe("Maria V1");
     });
 
-    result.current.refetch();
+    await act(async () => {
+      result.current.refetch();
+    });
 
     await waitFor(() => {
       expect(result.current.profile?.nome).toBe("Maria V2");

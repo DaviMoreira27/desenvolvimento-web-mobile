@@ -1,5 +1,6 @@
 import React from "react";
 import { render, fireEvent } from "@testing-library/react-native";
+import Consultas from "../app/(app)/consultas";
 
 const mockPush = jest.fn();
 
@@ -30,8 +31,6 @@ jest.mock("../hooks/useConsultas", () => ({
 jest.mock("../hooks/useModal", () => ({
   useModal: () => ({ setOpenModal: jest.fn() }),
 }));
-
-import Consultas from "../app/(app)/consultas";
 
 beforeEach(() => {
   mockPush.mockClear();

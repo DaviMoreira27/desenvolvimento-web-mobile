@@ -2,6 +2,8 @@ import React from "react";
 import { render, fireEvent } from "@testing-library/react-native";
 import * as ExpoLinking from "expo-linking";
 import { ToastProvider } from "../hooks/ToastContext";
+import { useDocumentosConsulta } from "../hooks/useDocumentosConsulta";
+import DocumentosScreen from "../app/(app)/documentos/[consultaId]";
 
 // Mock expo-router
 jest.mock("expo-router", () => ({
@@ -21,9 +23,6 @@ jest.mock("expo-linking", () => ({
 jest.mock("../hooks/useDocumentosConsulta", () => ({
   useDocumentosConsulta: jest.fn(),
 }));
-
-import { useDocumentosConsulta } from "../hooks/useDocumentosConsulta";
-import DocumentosScreen from "../app/(app)/documentos/[consultaId]";
 
 const mockUseDocumentosConsulta = useDocumentosConsulta as jest.Mock;
 const mockOpenURL = ExpoLinking.openURL as jest.Mock;

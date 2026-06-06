@@ -1,10 +1,10 @@
 import { Router } from "express";
 import type { Response } from "express";
 import { alias } from "drizzle-orm/pg-core";
-import { eq } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import multer from "multer";
 import { db } from "../db";
-import { consultas, documentosConsulta, usuarios } from "../db/schema";
+import { consultas, disponibilidadeMedicos, documentosConsulta, usuarios } from "../db/schema";
 import { authenticate } from "../middlewares/auth";
 import { validate } from "../middlewares/validate";
 import type { AuthRequest } from "../middlewares/auth";
@@ -54,6 +54,16 @@ router.get("/", async (req: AuthRequest, res: Response) => {
   res.json(lista);
 });
 
+const daysOfWeek = [
+  "domingo",
+  "segunda",
+  "terca",
+  "quarta",
+  "quinta",
+  "sexta",
+  "sabado",
+] as const;
+
 router.post(
   "/",
   validate(agendarConsultaSchema),
@@ -75,17 +85,87 @@ router.post(
       return;
     }
 
-    const [consulta] = await db
-      .insert(consultas)
-      .values({
-        pacienteId: req.user!.id,
-        medicoId,
-        dataHora: new Date(dataHora),
-        tipo,
-      })
-      .returning();
+    const dataHoraDate = new Date(dataHora);
+    const dayIndex = dataHoraDate.getUTCDay();
+    const diaSemana = daysOfWeek[dayIndex]!;
+    const horarioInicio =
+      String(dataHoraDate.getUTCHours()).padStart(2, "0") +
+      ":" +
+      String(dataHoraDate.getUTCMinutes()).padStart(2, "0");
 
-    res.status(201).json(consulta);
+    try {
+      const consulta = await db.transaction(
+        async (tx) => {
+          const [availabilitySlot] = await tx
+            .select({ id: disponibilidadeMedicos.id })
+            .from(disponibilidadeMedicos)
+            .where(
+              and(
+                eq(disponibilidadeMedicos.medicoId, medicoId),
+                eq(disponibilidadeMedicos.diaSemana, diaSemana),
+                eq(disponibilidadeMedicos.horarioInicio, horarioInicio)
+              )
+            );
+
+          if (!availabilitySlot) {
+            return { _error: 422, message: "O horário solicitado não faz parte da agenda do médico." };
+          }
+
+          const datePart =
+            dataHoraDate.getUTCFullYear() +
+            "-" +
+            String(dataHoraDate.getUTCMonth() + 1).padStart(2, "0") +
+            "-" +
+            String(dataHoraDate.getUTCDate()).padStart(2, "0");
+
+          const [conflictRow] = await tx
+            .select({ id: consultas.id })
+            .from(consultas)
+            .where(
+              and(
+                eq(consultas.medicoId, medicoId),
+                eq(consultas.status, "agendada"),
+                sql`TO_CHAR(${consultas.dataHora} AT TIME ZONE 'UTC', 'YYYY-MM-DD') = ${datePart}`,
+                sql`TO_CHAR(${consultas.dataHora} AT TIME ZONE 'UTC', 'HH24:MI') = ${horarioInicio}`
+              )
+            );
+
+          if (conflictRow) {
+            return { _error: 409, message: "Este horário já está ocupado." };
+          }
+
+          const [newConsulta] = await tx
+            .insert(consultas)
+            .values({
+              pacienteId: req.user!.id,
+              medicoId,
+              dataHora: dataHoraDate,
+              tipo,
+            })
+            .returning();
+
+          return newConsulta;
+        },
+        { isolationLevel: "serializable" }
+      );
+
+      if (consulta && "_error" in consulta) {
+        res.status(consulta._error as number).json({ message: consulta.message });
+        return;
+      }
+
+      res.status(201).json(consulta);
+    } catch (err) {
+      const pgError = err as { code?: string };
+      if (pgError.code === "40001") {
+        res.status(409).json({
+          message: "O horário não está mais disponível. Tente novamente.",
+        });
+        return;
+      }
+      console.error(err);
+      res.status(500).json({ message: "Erro interno. Tente novamente mais tarde." });
+    }
   }
 );
 

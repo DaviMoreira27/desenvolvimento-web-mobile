@@ -1,4 +1,4 @@
-import { consultaIdParamSchema } from "../../schemas/documento.schema";
+import { consultaIdParamSchema } from "../../src/schemas/documento.schema";
 
 describe("consultaIdParamSchema", () => {
   it("accepts a positive integer string and coerces it to a number", () => {

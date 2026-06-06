@@ -9,6 +9,7 @@ import {
   pgEnum,
   json,
   boolean,
+  uniqueIndex,
 } from "drizzle-orm/pg-core";
 
 export const tipoUsuarioEnum = pgEnum("tipo_usuario", ["paciente", "medico"]);
@@ -146,3 +147,33 @@ export const metas = pgTable("metas", {
   criadoEm: timestamp("criado_em").defaultNow().notNull(),
   atualizadoEm: timestamp("atualizado_em").defaultNow().notNull(),
 });
+
+export const diaSemanaEnum = pgEnum("dia_semana", [
+  "domingo",
+  "segunda",
+  "terca",
+  "quarta",
+  "quinta",
+  "sexta",
+  "sabado",
+]);
+
+export const disponibilidadeMedicos = pgTable(
+  "disponibilidade_medicos",
+  {
+    id: serial("id").primaryKey(),
+    medicoId: integer("medico_id")
+      .references(() => usuarios.id)
+      .notNull(),
+    diaSemana: diaSemanaEnum("dia_semana").notNull(),
+    horarioInicio: varchar("horario_inicio", { length: 5 }).notNull(),
+    criadoEm: timestamp("criado_em").defaultNow().notNull(),
+  },
+  (table) => [
+    uniqueIndex("disponibilidade_medico_slot_unique").on(
+      table.medicoId,
+      table.diaSemana,
+      table.horarioInicio
+    ),
+  ]
+);

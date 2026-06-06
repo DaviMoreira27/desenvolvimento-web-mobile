@@ -7,6 +7,7 @@ import consultasRouter from "./routes/consultas";
 import protocolosRouter from "./routes/protocolos";
 import pagamentosRouter from "./routes/pagamentos";
 import metasRouter from "./routes/metas";
+import disponibilidadeRouter from "./routes/disponibilidade";
 
 const app = express();
 
@@ -20,5 +21,6 @@ app.use("/api/consultas", consultasRouter);
 app.use("/api/protocolos", protocolosRouter);
 app.use("/api/pagamentos", pagamentosRouter);
 app.use("/api/metas", metasRouter);
+app.use("/api/disponibilidade", disponibilidadeRouter);
 
 export default app;

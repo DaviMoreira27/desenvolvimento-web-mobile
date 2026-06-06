@@ -1,4 +1,4 @@
-import type { AzureStorageService } from "../../services/azureStorage";
+import type { AzureStorageService } from "../../src/services/azureStorage";
 
 const mockUploadData = jest.fn().mockResolvedValue({});
 const mockGenerateSasUrl = jest.fn().mockResolvedValue("https://account.blob.core.windows.net/container/blob?sas=token");
@@ -47,7 +47,7 @@ describe("azureStorage service", () => {
 
   describe("uploadBlob", () => {
     it("calls uploadData with the provided buffer and content type", async () => {
-      const { azureStorage } = await import("../../services/azureStorage");
+      const { azureStorage } = await import("../../src/services/azureStorage");
       const buffer = Buffer.from("test file content");
       const blobName = "consultas/1/1717600000000-test.pdf";
       const contentType = "application/pdf";
@@ -62,7 +62,7 @@ describe("azureStorage service", () => {
     });
 
     it("propagates errors thrown by the Azure SDK", async () => {
-      const { azureStorage } = await import("../../services/azureStorage");
+      const { azureStorage } = await import("../../src/services/azureStorage");
       mockUploadData.mockRejectedValueOnce(new Error("Azure network error"));
 
       await expect(
@@ -73,7 +73,7 @@ describe("azureStorage service", () => {
 
   describe("generateSasUrl", () => {
     it("returns an HTTPS URL string", async () => {
-      const { azureStorage } = await import("../../services/azureStorage");
+      const { azureStorage } = await import("../../src/services/azureStorage");
       const url = await azureStorage.generateSasUrl("consultas/1/file.pdf", 3600);
 
       expect(typeof url).toBe("string");
@@ -81,7 +81,7 @@ describe("azureStorage service", () => {
     });
 
     it("uses the configured container", async () => {
-      const { azureStorage } = await import("../../services/azureStorage");
+      const { azureStorage } = await import("../../src/services/azureStorage");
       await azureStorage.generateSasUrl("consultas/1/file.pdf", 3600);
 
       expect(mockGetContainerClient).toHaveBeenCalledWith("testcontainer");

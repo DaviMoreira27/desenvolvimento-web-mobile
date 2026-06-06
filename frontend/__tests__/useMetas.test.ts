@@ -1,4 +1,6 @@
-import { renderHook, waitFor } from "@testing-library/react-native";
+import { renderHook, waitFor, act } from "@testing-library/react-native";
+import { useMetas } from "../hooks/useMetas";
+import type { Meta } from "../hooks/useMetas";
 
 const mockApiFetch = jest.fn();
 
@@ -9,9 +11,6 @@ jest.mock("../lib/api", () => ({
 jest.mock("../hooks/auth/useAuth", () => ({
   useAuth: () => ({ token: "test-token" }),
 }));
-
-import { useMetas } from "../hooks/useMetas";
-import type { Meta } from "../hooks/useMetas";
 
 const fakeMeta: Meta = {
   id: 1,
@@ -67,7 +66,9 @@ describe("useMetas", () => {
     const newMeta: Meta = { ...fakeMeta, id: 2, titulo: "Nova meta" };
     mockApiFetch.mockResolvedValueOnce(newMeta);
 
-    await result.current.createMeta({ titulo: "Nova meta" });
+    await act(async () => {
+      await result.current.createMeta({ titulo: "Nova meta" });
+    });
 
     await waitFor(() => {
       expect(result.current.metas).toHaveLength(1);
@@ -87,7 +88,9 @@ describe("useMetas", () => {
     const updatedMeta: Meta = { ...fakeMeta, concluida: true };
     mockApiFetch.mockResolvedValueOnce(updatedMeta);
 
-    await result.current.updateMeta(1, { concluida: true });
+    await act(async () => {
+      await result.current.updateMeta(1, { concluida: true });
+    });
 
     await waitFor(() => {
       expect(result.current.metas[0].concluida).toBe(true);
@@ -105,7 +108,9 @@ describe("useMetas", () => {
 
     mockApiFetch.mockResolvedValueOnce(undefined);
 
-    await result.current.deleteMeta(1);
+    await act(async () => {
+      await result.current.deleteMeta(1);
+    });
 
     await waitFor(() => {
       expect(result.current.metas).toHaveLength(0);
@@ -123,8 +128,10 @@ describe("useMetas", () => {
 
     mockApiFetch.mockRejectedValueOnce(new Error("Título obrigatório"));
 
-    await expect(
-      result.current.createMeta({ titulo: "" })
-    ).rejects.toThrow("Título obrigatório");
+    await act(async () => {
+      await expect(
+        result.current.createMeta({ titulo: "" })
+      ).rejects.toThrow("Título obrigatório");
+    });
   });
 });

@@ -9,12 +9,14 @@ import {
   StyleSheet,
   Text,
   TextInput,
+  TouchableOpacity,
   View,
 } from "react-native";
 import { useUserProfile } from "../../hooks/useUserProfile";
 import { useUpdateProfile } from "../../hooks/useUpdateProfile";
 import { useMetas } from "../../hooks/useMetas";
 import { useToast } from "../../hooks/useToast";
+import { DisponibilidadePanel } from "../../components/DisponibilidadePanel";
 
 type Tab = "dados" | "historico" | "metas";
 
@@ -40,6 +42,7 @@ export default function Perfil() {
     fotoUrl: "",
   });
   const [editError, setEditError] = useState<string | null>(null);
+  const [disponibilidadePanelOpen, setDisponibilidadePanelOpen] = useState(false);
 
   const [newGoalOpen, setNewGoalOpen] = useState(false);
   const [goalFields, setGoalFields] = useState({ titulo: "", descricao: "" });
@@ -71,7 +74,7 @@ export default function Perfil() {
 
   const TABS =
     profile.tipo === "medico"
-      ? ALL_TABS.filter((t) => t.key !== "metas")
+      ? ALL_TABS.filter((t) => t.key !== "metas" && t.key !== "historico")
       : ALL_TABS;
 
   function openEditModal() {
@@ -186,6 +189,15 @@ export default function Perfil() {
             <Pressable style={styles.editButton} onPress={openEditModal}>
               <Text style={styles.editButtonText}>Editar</Text>
             </Pressable>
+
+            {profile.tipo === "medico" && (
+              <TouchableOpacity
+                style={styles.availabilityButton}
+                onPress={() => setDisponibilidadePanelOpen(true)}
+              >
+                <Text style={styles.availabilityButtonText}>Gerenciar Disponibilidade</Text>
+              </TouchableOpacity>
+            )}
           </View>
         )}
 
@@ -203,6 +215,13 @@ export default function Perfil() {
           <MetasTab showToast={showToast} />
         )}
       </View>
+
+      {profile.tipo === "medico" && (
+        <DisponibilidadePanel
+          visible={disponibilidadePanelOpen}
+          onClose={() => setDisponibilidadePanelOpen(false)}
+        />
+      )}
 
       {/* Edit Modal */}
       <Modal
@@ -600,6 +619,21 @@ const styles = StyleSheet.create({
 
   editButtonText: {
     color: "#fff",
+    fontWeight: "700",
+    fontSize: 15,
+  },
+
+  availabilityButton: {
+    marginTop: 10,
+    borderWidth: 1.5,
+    borderColor: "#19c10f",
+    borderRadius: 10,
+    paddingVertical: 12,
+    alignItems: "center",
+  },
+
+  availabilityButtonText: {
+    color: "#19c10f",
     fontWeight: "700",
     fontSize: 15,
   },

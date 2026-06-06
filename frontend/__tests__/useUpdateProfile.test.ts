@@ -1,4 +1,5 @@
-import { renderHook, waitFor } from "@testing-library/react-native";
+import { renderHook, waitFor, act } from "@testing-library/react-native";
+import { useUpdateProfile } from "../hooks/useUpdateProfile";
 
 const mockApiFetch = jest.fn();
 
@@ -9,8 +10,6 @@ jest.mock("../lib/api", () => ({
 jest.mock("../hooks/auth/useAuth", () => ({
   useAuth: () => ({ token: "test-token" }),
 }));
-
-import { useUpdateProfile } from "../hooks/useUpdateProfile";
 
 describe("useUpdateProfile", () => {
   beforeEach(() => {
@@ -38,9 +37,12 @@ describe("useUpdateProfile", () => {
 
     const { result } = await renderHook(() => useUpdateProfile());
 
-    const returned = await result.current.updateProfile({ nome: "Novo Nome" });
+    let returned: Awaited<ReturnType<typeof result.current.updateProfile>>;
+    await act(async () => {
+      returned = await result.current.updateProfile({ nome: "Novo Nome" });
+    });
 
-    expect(returned).toEqual(fakeProfile);
+    expect(returned!).toEqual(fakeProfile);
     expect(result.current.isLoading).toBe(false);
     expect(result.current.error).toBeNull();
   });
@@ -50,9 +52,11 @@ describe("useUpdateProfile", () => {
 
     const { result } = await renderHook(() => useUpdateProfile());
 
-    await expect(
-      result.current.updateProfile({ nome: "" })
-    ).rejects.toThrow("Nome inválido");
+    await act(async () => {
+      await expect(
+        result.current.updateProfile({ nome: "" })
+      ).rejects.toThrow("Nome inválido");
+    });
 
     await waitFor(() => {
       expect(result.current.error).toBe("Nome inválido");
@@ -73,7 +77,9 @@ describe("useUpdateProfile", () => {
 
     const { result } = await renderHook(() => useUpdateProfile());
 
-    await result.current.updateProfile({ nome: "Test" });
+    await act(async () => {
+      await result.current.updateProfile({ nome: "Test" });
+    });
 
     expect(mockApiFetch).toHaveBeenCalledWith(
       "/api/users/me",
