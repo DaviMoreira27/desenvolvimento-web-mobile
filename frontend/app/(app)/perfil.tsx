@@ -3,6 +3,7 @@ import {
   ActivityIndicator,
   Alert,
   Modal,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -312,21 +313,12 @@ function MetasTab({ showToast }: { showToast: (type: "success" | "error", msg: s
     }
   }
 
-  function handleDelete(id: number) {
-    Alert.alert("Excluir meta", "Tem certeza que deseja excluir esta meta?", [
-      { text: "Cancelar", style: "cancel" },
-      {
-        text: "Excluir",
-        style: "destructive",
-        onPress: async () => {
-          try {
-            await deleteMeta(id);
-          } catch {
-            showToast("error", "Erro ao excluir meta.");
-          }
-        },
-      },
-    ]);
+  async function handleDelete(id: number) {
+    try {
+      await deleteMeta(id);
+    } catch {
+      showToast("error", "Erro ao excluir meta.");
+    }
   }
 
   return (
