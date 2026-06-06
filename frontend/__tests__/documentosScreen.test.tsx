@@ -1,6 +1,7 @@
 import React from "react";
 import { render, fireEvent } from "@testing-library/react-native";
 import * as ExpoLinking from "expo-linking";
+import { ToastProvider } from "../hooks/ToastContext";
 
 // Mock expo-router
 jest.mock("expo-router", () => ({
@@ -47,30 +48,34 @@ beforeEach(() => {
   mockOpenURL.mockClear();
 });
 
+function renderWithToast(ui: React.ReactElement) {
+  return render(<ToastProvider>{ui}</ToastProvider>);
+}
+
 describe("DocumentosScreen", () => {
   it("renders loading indicator when isLoading is true", async () => {
     mockUseDocumentosConsulta.mockReturnValue({ ...defaultHookReturn, isLoading: true });
-    const { getByTestId } = await render(<DocumentosScreen />);
+    const { getByTestId } = await renderWithToast(<DocumentosScreen />);
     expect(getByTestId("loading-indicator")).toBeTruthy();
   });
 
   it("renders error message and retry button when error is set", async () => {
     mockUseDocumentosConsulta.mockReturnValue({ ...defaultHookReturn, error: "Failed to load" });
-    const { getByText } = await render(<DocumentosScreen />);
+    const { getByText } = await renderWithToast(<DocumentosScreen />);
     expect(getByText(/Failed to load/)).toBeTruthy();
     expect(getByText(/retry|tentar novamente/i)).toBeTruthy();
   });
 
   it("calls fetchDocuments when retry button is pressed", async () => {
     mockUseDocumentosConsulta.mockReturnValue({ ...defaultHookReturn, error: "Failed to load" });
-    const { getByText } = await render(<DocumentosScreen />);
+    const { getByText } = await renderWithToast(<DocumentosScreen />);
     fireEvent.press(getByText(/retry|tentar novamente/i));
     expect(mockFetchDocuments).toHaveBeenCalledTimes(1);
   });
 
   it("renders empty state when documents array is empty", async () => {
     mockUseDocumentosConsulta.mockReturnValue({ ...defaultHookReturn, documents: [], isLoading: false });
-    const { getByText } = await render(<DocumentosScreen />);
+    const { getByText } = await renderWithToast(<DocumentosScreen />);
     expect(getByText(/no documents|nenhum documento/i)).toBeTruthy();
   });
 
@@ -88,7 +93,7 @@ describe("DocumentosScreen", () => {
         },
       ],
     });
-    const { getByText } = await render(<DocumentosScreen />);
+    const { getByText } = await renderWithToast(<DocumentosScreen />);
     expect(getByText("laudo.pdf")).toBeTruthy();
   });
 
@@ -106,28 +111,28 @@ describe("DocumentosScreen", () => {
         },
       ],
     });
-    const { getByText } = await render(<DocumentosScreen />);
+    const { getByText } = await renderWithToast(<DocumentosScreen />);
     fireEvent.press(getByText("laudo.pdf"));
     expect(mockOpenURL).toHaveBeenCalledWith("https://storage.example.com/blob?sas=token");
   });
 
   it("calls pickAndUpload when upload button is pressed", async () => {
     mockUseDocumentosConsulta.mockReturnValue(defaultHookReturn);
-    const { getByTestId } = await render(<DocumentosScreen />);
+    const { getByTestId } = await renderWithToast(<DocumentosScreen />);
     fireEvent.press(getByTestId("upload-button"));
     expect(mockPickAndUpload).toHaveBeenCalledTimes(1);
   });
 
   it("disables upload button when isUploading is true", async () => {
     mockUseDocumentosConsulta.mockReturnValue({ ...defaultHookReturn, isUploading: true });
-    const { getByTestId } = await render(<DocumentosScreen />);
+    const { getByTestId } = await renderWithToast(<DocumentosScreen />);
     const button = getByTestId("upload-button");
     expect(button.props.accessibilityState?.disabled).toBe(true);
   });
 
   it("shows uploadError below the upload button", async () => {
     mockUseDocumentosConsulta.mockReturnValue({ ...defaultHookReturn, uploadError: "Upload failed with 502" });
-    const { getByText } = await render(<DocumentosScreen />);
+    const { getByText } = await renderWithToast(<DocumentosScreen />);
     expect(getByText(/Upload failed with 502/)).toBeTruthy();
   });
 });

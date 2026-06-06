@@ -2,6 +2,7 @@ import { router } from "expo-router";
 import { useState } from "react";
 import { apiFetch } from "../../lib/api";
 import { useAuth } from "./useAuth";
+import { useToast } from "../useToast";
 
 type LoginResponse = {
   token: string;
@@ -15,6 +16,7 @@ type LoginResponse = {
 
 export function useLogin() {
   const { login } = useAuth();
+  const { showToast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -27,9 +29,12 @@ export function useLogin() {
         body: JSON.stringify({ email, senha }),
       });
       await login(data.token, data.usuario);
+      showToast("success", "Login realizado com sucesso.");
       router.replace("/(app)/inicio");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Erro ao fazer login");
+      const message = err instanceof Error ? err.message : "Erro ao fazer login";
+      setError(message);
+      showToast("error", message);
     } finally {
       setIsLoading(false);
     }

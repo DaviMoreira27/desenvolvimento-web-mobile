@@ -2,6 +2,7 @@ import { router, usePathname } from "expo-router";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { useAuth } from "../hooks/auth/useAuth";
 import { useModal } from "../hooks/useModal";
+import { useToast } from "../hooks/useToast";
 
 const NAV_ITEMS = [
   { label: "Início", icon: "🏠", route: "/(app)/inicio", key: "inicio" },
@@ -25,9 +26,11 @@ export default function Sidebar() {
   const pathname = usePathname();
   const { logout } = useAuth();
   const { setOpenModal } = useModal();
+  const { showToast } = useToast();
 
   async function handleLogout() {
     await logout();
+    showToast("success", "Você saiu da sua conta.");
     router.replace("/login");
   }
 

@@ -6,6 +6,7 @@ import {
   StyleSheet,
   Text,
   TextInput,
+  useWindowDimensions,
   View,
 } from "react-native";
 import { useRouter } from "expo-router";
@@ -14,17 +15,23 @@ import { useModal } from "../../hooks/useModal";
 
 function StatusBadge({ status }: { status: string }) {
   const map: Record<string, { bg: string; text: string }> = {
-    Concluído: { bg: "#dcfce7", text: "#15803d" },
-    Concluida: { bg: "#dcfce7", text: "#15803d" },
-    Pendente: { bg: "#fef3c7", text: "#b45309" },
-    Agendado: { bg: "#dbeafe", text: "#1d4ed8" },
-    Cancelado: { bg: "#fee2e2", text: "#b91c1c" },
-    Aprovado: { bg: "#dcfce7", text: "#15803d" },
+    concluído: { bg: "#dcfce7", text: "#15803d" },
+    concluido: { bg: "#dcfce7", text: "#15803d" },
+    concluida: { bg: "#dcfce7", text: "#15803d" },
+    pendente: { bg: "#fef3c7", text: "#b45309" },
+    agendado: { bg: "#dbeafe", text: "#1d4ed8" },
+    agendada: { bg: "#dbeafe", text: "#1d4ed8" },
+    cancelado: { bg: "#fee2e2", text: "#b91c1c" },
+    cancelada: { bg: "#fee2e2", text: "#b91c1c" },
+    aprovado: { bg: "#dcfce7", text: "#15803d" },
+    aprovada: { bg: "#dcfce7", text: "#15803d" },
   };
-  const style = map[status] ?? { bg: "#f1f5f9", text: "#475569" };
+  const key = status.toLowerCase();
+  const style = map[key] ?? { bg: "#f1f5f9", text: "#475569" };
+  const label = status.charAt(0).toUpperCase() + status.slice(1).toLowerCase();
   return (
     <View style={[badge.pill, { backgroundColor: style.bg }]}>
-      <Text style={[badge.text, { color: style.text }]}>{status}</Text>
+      <Text style={[badge.text, { color: style.text }]}>{label}</Text>
     </View>
   );
 }
@@ -34,6 +41,7 @@ const badge = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 99,
+    alignSelf: "flex-start",
   },
   text: {
     fontSize: 12,
@@ -41,12 +49,19 @@ const badge = StyleSheet.create({
   },
 });
 
+function capitalize(s: string) {
+  return s.charAt(0).toUpperCase() + s.slice(1).toLowerCase();
+}
+
 export default function Consultas() {
   const [searchText, setSearchText] = useState("");
   const [searchFocused, setSearchFocused] = useState(false);
   const { setOpenModal } = useModal();
   const { consultas, isLoading, error } = useConsultas();
   const router = useRouter();
+  const { width } = useWindowDimensions();
+
+  const isNarrow = width < 520;
 
   const consultasFiltradas = consultas.filter((consulta) => {
     const q = searchText.toLowerCase();
@@ -74,11 +89,15 @@ export default function Consultas() {
   }
 
   return (
-    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
-      <Text style={styles.title}>Próximas consultas</Text>
+    <ScrollView
+      style={[styles.container, isNarrow && styles.containerNarrow]}
+      showsVerticalScrollIndicator={false}
+    >
+      <Text style={[styles.title, isNarrow && styles.titleNarrow]}>
+        Próximas consultas
+      </Text>
 
-      {/* Barra de ações */}
-      <View style={styles.topBar}>
+      <View style={[styles.topBar, isNarrow && styles.topBarNarrow]}>
         <TextInput
           placeholder="Buscar por nome, tipo ou status..."
           placeholderTextColor="#94a3b8"
@@ -90,14 +109,17 @@ export default function Consultas() {
         />
 
         <Pressable
-          style={({ pressed }) => [styles.button, pressed && { opacity: 0.85 }]}
+          style={({ pressed }) => [
+            styles.button,
+            isNarrow && styles.buttonNarrow,
+            pressed && { opacity: 0.85 },
+          ]}
           onPress={() => setOpenModal(true)}
         >
           <Text style={styles.buttonText}>＋ Agendar</Text>
         </Pressable>
       </View>
 
-      {/* Lista */}
       {consultas.length === 0 ? (
         <View style={styles.emptyCard}>
           <Text style={styles.emptyEmoji}>📅</Text>
@@ -115,14 +137,20 @@ export default function Consultas() {
       ) : (
         consultasFiltradas.map((consulta) => (
           <View key={consulta.id} style={styles.card}>
-            {/* Header do card */}
             <View style={styles.cardHeader}>
-              <Text style={styles.cardName}>{consulta.paciente.nome}</Text>
+              <Text style={styles.cardName} numberOfLines={1}>
+                {consulta.paciente.nome}
+              </Text>
               <StatusBadge status={consulta.status} />
             </View>
 
-            <View style={styles.infoGrid}>
-              <View style={styles.infoItem}>
+            <View
+              style={[
+                styles.infoGrid,
+                isNarrow && styles.infoGridNarrow,
+              ]}
+            >
+              <View style={isNarrow ? styles.infoItemFull : styles.infoItem}>
                 <Text style={styles.infoLabel}>Data / Horário</Text>
                 <Text style={styles.infoValue}>
                   {new Date(consulta.dataHora).toLocaleDateString("pt-BR")} •{" "}
@@ -133,18 +161,20 @@ export default function Consultas() {
                 </Text>
               </View>
 
-              <View style={styles.infoItem}>
+              <View style={isNarrow ? styles.infoItemHalf : styles.infoItem}>
                 <Text style={styles.infoLabel}>Tipo</Text>
-                <Text style={styles.infoValue}>{consulta.tipo}</Text>
+                <Text style={styles.infoValue}>
+                  {capitalize(consulta.tipo)}
+                </Text>
               </View>
 
-              <View style={styles.infoItem}>
+              <View style={isNarrow ? styles.infoItemHalf : styles.infoItem}>
                 <Text style={styles.infoLabel}>Pagamento</Text>
                 <StatusBadge status={consulta.statusPagamento} />
               </View>
             </View>
 
-            <View style={styles.cardFooter}>
+            <View style={[styles.cardFooter, isNarrow && styles.cardFooterNarrow]}>
               <Pressable
                 style={({ pressed }) => [
                   styles.docBtn,
@@ -180,6 +210,10 @@ const styles = StyleSheet.create({
     backgroundColor: "#f8fafc",
   },
 
+  containerNarrow: {
+    padding: 16,
+  },
+
   centerContainer: {
     flex: 1,
     justifyContent: "center",
@@ -194,11 +228,20 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
 
+  titleNarrow: {
+    fontSize: 20,
+    marginBottom: 14,
+  },
+
   topBar: {
     flexDirection: "row",
     gap: 12,
     marginBottom: 20,
     alignItems: "center",
+  },
+
+  topBarNarrow: {
+    marginBottom: 14,
   },
 
   search: {
@@ -226,6 +269,11 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.25,
     shadowRadius: 6,
     elevation: 3,
+  },
+
+  buttonNarrow: {
+    paddingHorizontal: 14,
+    paddingVertical: 11,
   },
 
   buttonText: {
@@ -281,12 +329,14 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
     marginBottom: 16,
+    gap: 8,
   },
 
   cardName: {
     fontWeight: "700",
     fontSize: 16,
     color: "#0f172a",
+    flex: 1,
   },
 
   infoGrid: {
@@ -296,9 +346,22 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
 
+  infoGridNarrow: {
+    gap: 12,
+  },
+
   infoItem: {
     flex: 1,
     minWidth: 120,
+  },
+
+  infoItemFull: {
+    width: "100%",
+  },
+
+  infoItemHalf: {
+    flex: 1,
+    minWidth: 0,
   },
 
   infoLabel: {
@@ -321,6 +384,11 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: "#f1f5f9",
     paddingTop: 14,
+    flexWrap: "wrap",
+  },
+
+  cardFooterNarrow: {
+    gap: 8,
   },
 
   docBtn: {

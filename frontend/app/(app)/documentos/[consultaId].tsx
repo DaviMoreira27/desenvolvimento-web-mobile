@@ -1,8 +1,10 @@
 import { ActivityIndicator, FlatList, Platform, Pressable, StyleSheet, Text, View } from "react-native";
 import { useLocalSearchParams } from "expo-router";
 import * as Linking from "expo-linking";
+import { useEffect, useRef } from "react";
 import { useDocumentosConsulta, DocumentoResponse } from "../../../hooks/useDocumentosConsulta";
 import { VGTheme } from "../../../constants/theme";
+import { useToast } from "../../../hooks/useToast";
 
 export default function DocumentosScreen() {
   const { consultaId } = useLocalSearchParams<{ consultaId: string }>();
@@ -17,6 +19,22 @@ export default function DocumentosScreen() {
     fetchDocuments,
     pickAndUpload,
   } = useDocumentosConsulta(id);
+
+  const { showToast } = useToast();
+  const prevIsUploading = useRef(false);
+
+  useEffect(() => {
+    if (uploadError) {
+      showToast("error", "Falha ao enviar o documento. Tente novamente.");
+    }
+  }, [uploadError]);
+
+  useEffect(() => {
+    if (prevIsUploading.current && !isUploading && !uploadError) {
+      showToast("success", "Documento enviado com sucesso.");
+    }
+    prevIsUploading.current = isUploading;
+  }, [isUploading, uploadError]);
 
   if (isLoading) {
     return (

@@ -12,17 +12,23 @@ import { useProtocolos } from "../../hooks/useProtocolos";
 
 function StatusBadge({ status }: { status: string }) {
   const map: Record<string, { bg: string; text: string }> = {
-    Concluído: { bg: "#dcfce7", text: "#15803d" },
-    Concluida: { bg: "#dcfce7", text: "#15803d" },
-    Pendente: { bg: "#fef3c7", text: "#b45309" },
-    Agendado: { bg: "#dbeafe", text: "#1d4ed8" },
-    Cancelado: { bg: "#fee2e2", text: "#b91c1c" },
-    Aprovado: { bg: "#dcfce7", text: "#15803d" },
+    concluído: { bg: "#dcfce7", text: "#15803d" },
+    concluido: { bg: "#dcfce7", text: "#15803d" },
+    concluida: { bg: "#dcfce7", text: "#15803d" },
+    pendente: { bg: "#fef3c7", text: "#b45309" },
+    agendado: { bg: "#dbeafe", text: "#1d4ed8" },
+    agendada: { bg: "#dbeafe", text: "#1d4ed8" },
+    cancelado: { bg: "#fee2e2", text: "#b91c1c" },
+    cancelada: { bg: "#fee2e2", text: "#b91c1c" },
+    aprovado: { bg: "#dcfce7", text: "#15803d" },
+    aprovada: { bg: "#dcfce7", text: "#15803d" },
   };
-  const style = map[status] ?? { bg: "#f1f5f9", text: "#475569" };
+  const key = status.toLowerCase();
+  const style = map[key] ?? { bg: "#f1f5f9", text: "#475569" };
+  const label = status.charAt(0).toUpperCase() + status.slice(1).toLowerCase();
   return (
     <View style={[badge.pill, { backgroundColor: style.bg }]}>
-      <Text style={[badge.text, { color: style.text }]}>{status}</Text>
+      <Text style={[badge.text, { color: style.text }]}>{label}</Text>
     </View>
   );
 }
@@ -40,23 +46,30 @@ const badge = StyleSheet.create({
   },
 });
 
+function capitalize(s: string) {
+  return s.charAt(0).toUpperCase() + s.slice(1).toLowerCase();
+}
+
+function consultasNaSemana(consultas: { dataHora: string }[]) {
+  const now = new Date();
+  const dayOfWeek = now.getDay();
+  const monday = new Date(now);
+  monday.setDate(now.getDate() - ((dayOfWeek + 6) % 7));
+  monday.setHours(0, 0, 0, 0);
+  const sunday = new Date(monday);
+  sunday.setDate(monday.getDate() + 6);
+  sunday.setHours(23, 59, 59, 999);
+  return consultas.filter((c) => {
+    const d = new Date(c.dataHora);
+    return d >= monday && d <= sunday;
+  }).length;
+}
+
 export default function Inicio() {
   const { usuario } = useAuth();
-  const {
-    consultas,
-    isLoading: loadingConsultas,
-    error: errorConsultas,
-  } = useConsultas();
-  const {
-    protocolos,
-    isLoading: loadingProtocolos,
-    error: errorProtocolos,
-  } = useProtocolos();
-  const {
-    pagamentos,
-    isLoading: loadingPagamentos,
-    error: errorPagamentos,
-  } = usePagamentos();
+  const { consultas, isLoading: loadingConsultas, error: errorConsultas } = useConsultas();
+  const { protocolos, isLoading: loadingProtocolos, error: errorProtocolos } = useProtocolos();
+  const { pagamentos, isLoading: loadingPagamentos, error: errorPagamentos } = usePagamentos();
 
   const isLoading = loadingConsultas || loadingProtocolos || loadingPagamentos;
   const hasError = errorConsultas || errorProtocolos || errorPagamentos;
@@ -72,27 +85,22 @@ export default function Inicio() {
   if (hasError) {
     return (
       <View style={styles.centerContainer}>
-        <Text style={styles.errorText}>
-          Erro ao carregar dados. Tente novamente.
-        </Text>
+        <Text style={styles.errorText}>Erro ao carregar dados. Tente novamente.</Text>
       </View>
     );
   }
 
   const proximaConsulta = consultas[0];
-  const protocolosAtivos = protocolos.length;
+  const isMedico = usuario?.tipo === "medico";
 
   return (
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
-      {/* Cabeçalho */}
       <Text style={styles.greeting}>
         Olá, {usuario?.nome?.split(" ")[0]} 👋
       </Text>
-      <Text style={styles.subGreeting}>
-        Aqui está um resumo do seu histórico.
-      </Text>
+      <Text style={styles.subGreeting}>Aqui está um resumo do seu histórico.</Text>
 
-      {/* Cards de resumo */}
+      {/* Cards */}
       <View style={styles.cardsContainer}>
         <View style={[styles.cardSmall, { borderTopColor: "#19c10f" }]}>
           <Text style={styles.cardEmoji}>📅</Text>
@@ -102,6 +110,14 @@ export default function Inicio() {
               ? new Date(proximaConsulta.dataHora).toLocaleDateString("pt-BR")
               : "—"}
           </Text>
+          {proximaConsulta && (
+            <Text style={styles.cardSubValue}>
+              {new Date(proximaConsulta.dataHora).toLocaleTimeString("pt-BR", {
+                hour: "2-digit",
+                minute: "2-digit",
+              })}
+            </Text>
+          )}
         </View>
 
         <View style={[styles.cardSmall, { borderTopColor: "#3b82f6" }]}>
@@ -112,14 +128,22 @@ export default function Inicio() {
           </Text>
         </View>
 
-        <View style={[styles.cardSmall, { borderTopColor: "#f59e0b" }]}>
-          <Text style={styles.cardEmoji}>📊</Text>
-          <Text style={styles.cardTitle}>Protocolos ativos</Text>
-          <Text style={styles.cardValue}>{protocolosAtivos}</Text>
-        </View>
+        {isMedico ? (
+          <View style={[styles.cardSmall, { borderTopColor: "#8b5cf6" }]}>
+            <Text style={styles.cardEmoji}>📆</Text>
+            <Text style={styles.cardTitle}>Consultas na semana</Text>
+            <Text style={styles.cardValue}>{consultasNaSemana(consultas)}</Text>
+          </View>
+        ) : (
+          <View style={[styles.cardSmall, { borderTopColor: "#f59e0b" }]}>
+            <Text style={styles.cardEmoji}>📊</Text>
+            <Text style={styles.cardTitle}>Protocolos ativos</Text>
+            <Text style={styles.cardValue}>{protocolos.length}</Text>
+          </View>
+        )}
       </View>
 
-      {/* CONSULTAS */}
+      {/* Tabela de Consultas */}
       <View style={styles.card}>
         <Text style={styles.sectionTitle}>Consultas</Text>
 
@@ -129,7 +153,9 @@ export default function Inicio() {
           <>
             <View style={styles.rowHeader}>
               <Text style={styles.rowHeaderText}>Data</Text>
-              <Text style={styles.rowHeaderText}>Paciente</Text>
+              <Text style={styles.rowHeaderText}>
+                {isMedico ? "Paciente" : "Médico"}
+              </Text>
               <Text style={styles.rowHeaderText}>Tipo</Text>
               <Text style={styles.rowHeaderText}>Status</Text>
             </View>
@@ -139,51 +165,61 @@ export default function Inicio() {
                 <Text style={styles.rowText}>
                   {new Date(consulta.dataHora).toLocaleDateString("pt-BR")}
                 </Text>
-                <Text style={styles.rowText}>{consulta.paciente.nome}</Text>
-                <View style={[badge.pill, { backgroundColor: "#f1f5f9" }]}>
-                  <Text style={[badge.text, { color: "#475569" }]}>
-                    {consulta.tipo}
-                  </Text>
-                </View>
-                <StatusBadge status={consulta.status} />
-              </View>
-            ))}
-          </>
-        )}
-      </View>
-
-      {/* PROTOCOLOS */}
-      <View style={styles.card}>
-        <Text style={styles.sectionTitle}>Protocolos</Text>
-
-        {protocolos.length === 0 ? (
-          <Text style={styles.emptyText}>Nenhum protocolo encontrado</Text>
-        ) : (
-          <>
-            <View style={styles.rowHeader}>
-              <Text style={styles.rowHeaderText}>Data envio</Text>
-              <Text style={styles.rowHeaderText}>Médico</Text>
-              <Text style={styles.rowHeaderText}>Tipo</Text>
-              <Text style={styles.rowHeaderText}>Versão</Text>
-            </View>
-
-            {protocolos.map((protocolo) => (
-              <View key={protocolo.id} style={styles.row}>
                 <Text style={styles.rowText}>
-                  {new Date(protocolo.criadoEm).toLocaleDateString("pt-BR")}
+                  {isMedico
+                    ? (consulta.paciente?.nome ?? "—")
+                    : (consulta.medico?.nome ?? "—")}
                 </Text>
-                <Text style={styles.rowText}>{protocolo.medico.nome}</Text>
-                <Text style={styles.rowText}>{protocolo.tipo || "—"}</Text>
-                <Text style={styles.rowText}>v{protocolo.versao}</Text>
+                <View style={styles.rowCell}>
+                  <View style={[badge.pill, { backgroundColor: "#f1f5f9" }]}>
+                    <Text style={[badge.text, { color: "#475569" }]}>
+                      {capitalize(consulta.tipo)}
+                    </Text>
+                  </View>
+                </View>
+                <View style={styles.rowCell}>
+                  <StatusBadge status={consulta.status} />
+                </View>
               </View>
             ))}
           </>
         )}
       </View>
 
-      {/* PAGAMENTOS */}
+      {/* Tabela de Protocolos — apenas para pacientes */}
+      {!isMedico && (
+        <View style={styles.card}>
+          <Text style={styles.sectionTitle}>Protocolos</Text>
+
+          {protocolos.length === 0 ? (
+            <Text style={styles.emptyText}>Nenhum protocolo encontrado</Text>
+          ) : (
+            <>
+              <View style={styles.rowHeader}>
+                <Text style={styles.rowHeaderText}>Data</Text>
+                <Text style={styles.rowHeaderText}>Médico</Text>
+                <Text style={styles.rowHeaderText}>Versão</Text>
+              </View>
+
+              {protocolos.map((protocolo) => (
+                <View key={protocolo.id} style={styles.row}>
+                  <Text style={styles.rowText}>
+                    {new Date(protocolo.criadoEm).toLocaleDateString("pt-BR")}
+                  </Text>
+                  <Text style={styles.rowText}>{protocolo.medico.nome}</Text>
+                  <Text style={styles.rowText}>v{protocolo.versao}</Text>
+                </View>
+              ))}
+            </>
+          )}
+        </View>
+      )}
+
+      {/* Tabela de Pagamentos */}
       <View style={styles.card}>
-        <Text style={styles.sectionTitle}>Histórico de Pagamentos</Text>
+        <Text style={styles.sectionTitle}>
+          {isMedico ? "Pagamentos Recebidos" : "Histórico de Pagamentos"}
+        </Text>
 
         {pagamentos.length === 0 ? (
           <Text style={styles.emptyText}>Nenhum pagamento encontrado</Text>
@@ -207,7 +243,9 @@ export default function Inicio() {
                 <Text style={styles.rowText}>
                   R$ {pagamento.valor.toFixed(2)}
                 </Text>
-                <StatusBadge status={pagamento.status} />
+                <View style={styles.rowCell}>
+                  <StatusBadge status={pagamento.status} />
+                </View>
               </View>
             ))}
           </>
@@ -281,6 +319,13 @@ const styles = StyleSheet.create({
     color: "#0f172a",
   },
 
+  cardSubValue: {
+    fontSize: 13,
+    color: "#64748b",
+    fontWeight: "500",
+    marginTop: 2,
+  },
+
   link: {
     color: "#3b82f6",
     fontWeight: "600",
@@ -336,6 +381,12 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 13,
     color: "#374151",
+  },
+
+  rowCell: {
+    flex: 1,
+    alignItems: "flex-start",
+    justifyContent: "center",
   },
 
   emptyText: {

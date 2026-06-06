@@ -3,9 +3,11 @@ import { useState } from "react";
 import {
   ActivityIndicator,
   Modal,
+  ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
+  useWindowDimensions,
   View,
 } from "react-native";
 import Sidebar from "../../components/sidebar";
@@ -13,12 +15,17 @@ import { useAuth } from "../../hooks/auth/useAuth";
 import { useAgendarConsulta } from "../../hooks/useAgendarConsulta";
 import { useMedicos } from "../../hooks/useMedicos";
 import { useModal } from "../../hooks/useModal";
+import { useToast } from "../../hooks/useToast";
 
 export default function AppLayout() {
   const { token, isLoading } = useAuth();
-  const { openModal, setOpenModal } = useModal();
+  const { openModal, setOpenModal, bumpConsultasVersion } = useModal();
+  const { width, height } = useWindowDimensions();
+  const modalWidth = Math.min(width - 32, 560);
+  const isNarrow = width < 520;
   const { medicos, isLoading: loadingMedicos } = useMedicos();
   const { agendar, isLoading: agendando } = useAgendarConsulta();
+  const { showToast } = useToast();
 
   // modal
   const [openSidebar, setOpenSidebar] = useState(true);
@@ -57,7 +64,7 @@ export default function AppLayout() {
 
   const handleAgendar = async () => {
     if (!selectedDoctorId || !selectedDate || !selectedTime) {
-      alert("Selecione médico, data e horário");
+      showToast("error", "Selecione médico, data e horário.");
       return;
     }
 
@@ -78,9 +85,10 @@ export default function AppLayout() {
       setSelectedDate(null);
       setSelectedTime(null);
       setSelectedType("presencial");
-      alert("Consulta agendada com sucesso!");
+      bumpConsultasVersion();
+      showToast("success", "Consulta agendada com sucesso!");
     } catch (error) {
-      alert("Erro ao agendar consulta");
+      showToast("error", "Erro ao agendar consulta. Tente novamente.");
     }
   };
 
@@ -110,100 +118,101 @@ export default function AppLayout() {
         <Stack screenOptions={{ headerShown: false }} />
       </View>
 
-      {/* 🔥 MODAL GLOBAL */}
+      {/* MODAL GLOBAL */}
       <Modal visible={openModal} transparent animationType="fade">
         <View style={styles.overlay}>
-          <View style={styles.modal}>
-            {/* STEP 1 - Selecionar Médico */}
-            {step === 1 && (
-              <>
-                <Text style={styles.title}>Nova Consulta</Text>
+          <View style={[styles.modal, { width: modalWidth, maxHeight: height * 0.88 }]}>
+            <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+              {/* STEP 1 - Selecionar Médico */}
+              {step === 1 && (
+                <>
+                  <Text style={styles.title}>Nova Consulta</Text>
 
-                {loadingMedicos ? (
-                  <ActivityIndicator
-                    size="large"
-                    color="#19c10f"
-                    style={{ marginTop: 20 }}
-                  />
-                ) : medicos.length === 0 ? (
-                  <Text style={styles.emptyText}>Nenhum médico disponível</Text>
-                ) : (
-                  <View style={styles.grid}>
-                    {medicos.map((medico) => (
+                  {loadingMedicos ? (
+                    <ActivityIndicator
+                      size="large"
+                      color="#19c10f"
+                      style={{ marginTop: 20 }}
+                    />
+                  ) : medicos.length === 0 ? (
+                    <Text style={styles.emptyText}>Nenhum médico disponível</Text>
+                  ) : (
+                    <View style={[styles.grid, isNarrow && styles.gridNarrow]}>
+                      {medicos.map((medico) => (
+                        <TouchableOpacity
+                          key={medico.id}
+                          style={[
+                            styles.card,
+                            isNarrow && styles.cardNarrow,
+                            selectedDoctorId === medico.id && styles.selectedCard,
+                          ]}
+                          onPress={() => setSelectedDoctorId(medico.id)}
+                        >
+                          <Text style={styles.cardText}>{medico.nome}</Text>
+                        </TouchableOpacity>
+                      ))}
+                    </View>
+                  )}
+
+                  <View style={styles.actions}>
+                    <TouchableOpacity style={styles.cancelBtn} onPress={closeModal}>
+                      <Text style={styles.cancelBtnText}>Cancelar</Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                      style={[styles.button, !selectedDoctorId && styles.buttonDisabled]}
+                      onPress={() => setStep(2)}
+                      disabled={!selectedDoctorId}
+                    >
+                      <Text style={styles.buttonText}>Continuar</Text>
+                    </TouchableOpacity>
+                  </View>
+                </>
+              )}
+
+              {/* STEP 2 - Selecionar Data, Hora e Tipo */}
+              {step === 2 && (
+                <>
+                  <Text style={styles.title}>{selectedDoctor?.nome}</Text>
+
+                  <Text style={styles.sectionLabel}>Selecione a data</Text>
+
+                  <ScrollView
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    style={styles.datesContainer}
+                    contentContainerStyle={styles.datesContent}
+                  >
+                    {getNextDays().map((date, i) => (
                       <TouchableOpacity
-                        key={medico.id}
+                        key={i}
                         style={[
-                          styles.card,
-                          selectedDoctorId === medico.id && styles.selectedCard,
+                          styles.dateButton,
+                          selectedDate?.toDateString() === date.toDateString() &&
+                            styles.selectedDateButton,
                         ]}
-                        onPress={() => setSelectedDoctorId(medico.id)}
+                        onPress={() => setSelectedDate(date)}
                       >
-                        <Text>{medico.nome}</Text>
+                        <Text
+                          style={[
+                            styles.dateButtonText,
+                            selectedDate?.toDateString() === date.toDateString() &&
+                              styles.selectedDateButtonText,
+                          ]}
+                        >
+                          {date.toLocaleDateString("pt-BR", {
+                            day: "2-digit",
+                            month: "short",
+                          })}
+                        </Text>
                       </TouchableOpacity>
                     ))}
-                  </View>
-                )}
+                  </ScrollView>
 
-                <View style={styles.actions}>
-                  <TouchableOpacity onPress={closeModal}>
-                    <Text>Cancelar</Text>
-                  </TouchableOpacity>
+                  <Text style={styles.sectionLabel}>Horários disponíveis</Text>
 
-                  <TouchableOpacity
-                    style={styles.button}
-                    onPress={() => setStep(2)}
-                    disabled={!selectedDoctorId}
-                  >
-                    <Text style={styles.buttonText}>Continuar</Text>
-                  </TouchableOpacity>
-                </View>
-              </>
-            )}
-
-            {/* STEP 2 - Selecionar Data, Hora e Tipo */}
-            {step === 2 && (
-              <>
-                <Text style={styles.title}>{selectedDoctor?.nome}</Text>
-
-                <Text style={{ marginTop: 10, fontWeight: "600" }}>
-                  Selecione a data
-                </Text>
-
-                <View style={styles.datesContainer}>
-                  {getNextDays().map((date, i) => (
-                    <TouchableOpacity
-                      key={i}
-                      style={[
-                        styles.dateButton,
-                        selectedDate?.toDateString() === date.toDateString() &&
-                          styles.selectedDateButton,
-                      ]}
-                      onPress={() => setSelectedDate(date)}
-                    >
-                      <Text
-                        style={[
-                          styles.dateButtonText,
-                          selectedDate?.toDateString() ===
-                            date.toDateString() &&
-                            styles.selectedDateButtonText,
-                        ]}
-                      >
-                        {date.toLocaleDateString("pt-BR", {
-                          day: "2-digit",
-                          month: "short",
-                        })}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-
-                <Text style={{ marginTop: 20, fontWeight: "600" }}>
-                  Horários disponíveis
-                </Text>
-
-                <View style={styles.times}>
-                  {["08:00", "10:00", "14:00", "16:00", "18:00"].map(
-                    (time, i) => (
+                  <View style={styles.times}>
+                    {["08:00", "10:00", "14:00", "16:00", "18:00"].map((time, i) => (
                       <TouchableOpacity
                         key={i}
                         style={[
@@ -215,80 +224,73 @@ export default function AppLayout() {
                         <Text
                           style={[
                             styles.timeButtonText,
-                            selectedTime === time &&
-                              styles.selectedTimeButtonText,
+                            selectedTime === time && styles.selectedTimeButtonText,
                           ]}
                         >
                           {time}
                         </Text>
                       </TouchableOpacity>
-                    ),
-                  )}
-                </View>
+                    ))}
+                  </View>
 
-                <Text style={{ marginTop: 20, fontWeight: "600" }}>
-                  Tipo de Consulta
-                </Text>
+                  <Text style={styles.sectionLabel}>Tipo de Consulta</Text>
 
-                <View style={styles.typeContainer}>
-                  <TouchableOpacity
-                    style={[
-                      styles.typeButton,
-                      selectedType === "presencial" &&
-                        styles.selectedTypeButton,
-                    ]}
-                    onPress={() => setSelectedType("presencial")}
-                  >
-                    <Text
+                  <View style={styles.typeContainer}>
+                    <TouchableOpacity
                       style={[
-                        styles.typeButtonText,
-                        selectedType === "presencial" &&
-                          styles.selectedTypeButtonText,
+                        styles.typeButton,
+                        selectedType === "presencial" && styles.selectedTypeButton,
                       ]}
+                      onPress={() => setSelectedType("presencial")}
                     >
-                      Presencial
-                    </Text>
-                  </TouchableOpacity>
+                      <Text
+                        style={[
+                          styles.typeButtonText,
+                          selectedType === "presencial" && styles.selectedTypeButtonText,
+                        ]}
+                      >
+                        Presencial
+                      </Text>
+                    </TouchableOpacity>
 
-                  <TouchableOpacity
-                    style={[
-                      styles.typeButton,
-                      selectedType === "teleconsulta" &&
-                        styles.selectedTypeButton,
-                    ]}
-                    onPress={() => setSelectedType("teleconsulta")}
-                  >
-                    <Text
+                    <TouchableOpacity
                       style={[
-                        styles.typeButtonText,
-                        selectedType === "teleconsulta" &&
-                          styles.selectedTypeButtonText,
+                        styles.typeButton,
+                        selectedType === "teleconsulta" && styles.selectedTypeButton,
                       ]}
+                      onPress={() => setSelectedType("teleconsulta")}
                     >
-                      Teleconsulta
-                    </Text>
-                  </TouchableOpacity>
-                </View>
+                      <Text
+                        style={[
+                          styles.typeButtonText,
+                          selectedType === "teleconsulta" && styles.selectedTypeButtonText,
+                        ]}
+                      >
+                        Teleconsulta
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
 
-                <View style={styles.actions}>
-                  <TouchableOpacity onPress={() => setStep(1)}>
-                    <Text>Voltar</Text>
-                  </TouchableOpacity>
+                  <View style={styles.actions}>
+                    <TouchableOpacity style={styles.cancelBtn} onPress={() => setStep(1)}>
+                      <Text style={styles.cancelBtnText}>Voltar</Text>
+                    </TouchableOpacity>
 
-                  <TouchableOpacity
-                    style={[styles.button, agendando && styles.buttonDisabled]}
-                    onPress={handleAgendar}
-                    disabled={agendando || !selectedDate || !selectedTime}
-                  >
-                    {agendando ? (
-                      <ActivityIndicator color="#fff" size="small" />
-                    ) : (
-                      <Text style={styles.buttonText}>Agendar</Text>
-                    )}
-                  </TouchableOpacity>
-                </View>
-              </>
-            )}
+                    <TouchableOpacity
+                      style={[styles.button, agendando && styles.buttonDisabled]}
+                      onPress={handleAgendar}
+                      disabled={agendando || !selectedDate || !selectedTime}
+                    >
+                      {agendando ? (
+                        <ActivityIndicator color="#fff" size="small" />
+                      ) : (
+                        <Text style={styles.buttonText}>Agendar</Text>
+                      )}
+                    </TouchableOpacity>
+                  </View>
+                </>
+              )}
+            </ScrollView>
           </View>
         </View>
       </Modal>
@@ -311,162 +313,215 @@ const styles = StyleSheet.create({
     padding: 10,
   },
 
-  /* MODAL */
   overlay: {
     flex: 1,
-    backgroundColor: "rgba(0,0,0,0.3)",
+    backgroundColor: "rgba(0,0,0,0.4)",
     justifyContent: "center",
     alignItems: "center",
+    padding: 16,
   },
 
   modal: {
-    width: "80%",
     backgroundColor: "#fff",
-    padding: 20,
-    borderRadius: 15,
-    maxHeight: "90%",
+    padding: 24,
+    borderRadius: 16,
   },
 
   title: {
     fontSize: 18,
-    fontWeight: "bold",
+    fontWeight: "700",
+    color: "#0f172a",
+    marginBottom: 4,
+  },
+
+  sectionLabel: {
+    marginTop: 16,
+    marginBottom: 8,
+    fontWeight: "600",
+    fontSize: 14,
+    color: "#374151",
   },
 
   grid: {
     flexDirection: "row",
     flexWrap: "wrap",
     gap: 10,
-    marginTop: 20,
+    marginTop: 16,
+  },
+
+  gridNarrow: {
+    flexDirection: "column",
   },
 
   card: {
-    width: "45%",
-    padding: 15,
-    backgroundColor: "#eee",
+    width: "47%",
+    padding: 14,
+    backgroundColor: "#f1f5f9",
     borderRadius: 10,
+    borderWidth: 1.5,
+    borderColor: "transparent",
+  },
+
+  cardNarrow: {
+    width: "100%",
+  },
+
+  cardText: {
+    fontSize: 14,
+    color: "#374151",
+    fontWeight: "500",
   },
 
   selectedCard: {
-    backgroundColor: "#d4f7d4",
+    backgroundColor: "#dcfce7",
+    borderColor: "#19c10f",
   },
 
   datesContainer: {
-    flexDirection: "row",
-    flexWrap: "wrap",
+    marginTop: 0,
+  },
+
+  datesContent: {
     gap: 8,
-    marginTop: 10,
-    maxHeight: 120,
+    paddingVertical: 4,
   },
 
   dateButton: {
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    backgroundColor: "#eee",
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    backgroundColor: "#f1f5f9",
     borderRadius: 8,
-    borderWidth: 1,
-    borderColor: "#ddd",
+    borderWidth: 1.5,
+    borderColor: "transparent",
   },
 
   selectedDateButton: {
-    backgroundColor: "#19c10f",
+    backgroundColor: "#dcfce7",
     borderColor: "#19c10f",
   },
 
   dateButtonText: {
-    color: "#333",
-    fontSize: 12,
+    color: "#374151",
+    fontSize: 13,
     fontWeight: "500",
   },
 
   selectedDateButtonText: {
-    color: "#fff",
+    color: "#15803d",
+    fontWeight: "700",
   },
 
   times: {
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: 10,
-    marginTop: 15,
+    gap: 8,
   },
 
   timeButton: {
-    backgroundColor: "#eee",
-    padding: 10,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    backgroundColor: "#f1f5f9",
     borderRadius: 8,
-    borderWidth: 1,
-    borderColor: "#ddd",
+    borderWidth: 1.5,
+    borderColor: "transparent",
   },
 
   selectedTimeButton: {
-    backgroundColor: "#19c10f",
+    backgroundColor: "#dcfce7",
     borderColor: "#19c10f",
   },
 
   timeButtonText: {
-    color: "#333",
+    color: "#374151",
     fontWeight: "500",
+    fontSize: 14,
   },
 
   selectedTimeButtonText: {
-    color: "#fff",
+    color: "#15803d",
+    fontWeight: "700",
   },
 
   typeContainer: {
     flexDirection: "row",
     gap: 10,
-    marginTop: 10,
   },
 
   typeButton: {
     flex: 1,
-    padding: 12,
-    backgroundColor: "#eee",
+    paddingVertical: 12,
+    backgroundColor: "#f1f5f9",
     borderRadius: 8,
-    borderWidth: 1,
-    borderColor: "#ddd",
+    borderWidth: 1.5,
+    borderColor: "transparent",
     alignItems: "center",
   },
 
   selectedTypeButton: {
-    backgroundColor: "#19c10f",
+    backgroundColor: "#dcfce7",
     borderColor: "#19c10f",
   },
 
   typeButtonText: {
-    color: "#333",
+    color: "#374151",
     fontWeight: "500",
+    fontSize: 14,
   },
 
   selectedTypeButtonText: {
-    color: "#fff",
+    color: "#15803d",
+    fontWeight: "700",
   },
 
   actions: {
     flexDirection: "row",
     justifyContent: "space-between",
-    marginTop: 20,
+    alignItems: "center",
+    marginTop: 24,
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: "#f1f5f9",
+  },
+
+  cancelBtn: {
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+  },
+
+  cancelBtnText: {
+    color: "#64748b",
+    fontWeight: "500",
+    fontSize: 14,
   },
 
   button: {
     backgroundColor: "#19c10f",
-    padding: 10,
-    borderRadius: 8,
-    minWidth: 100,
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 10,
+    minWidth: 110,
     alignItems: "center",
+    shadowColor: "#19c10f",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 3,
   },
 
   buttonDisabled: {
-    opacity: 0.5,
+    opacity: 0.45,
   },
 
   buttonText: {
     color: "#fff",
-    fontWeight: "bold",
+    fontWeight: "700",
+    fontSize: 14,
   },
 
   emptyText: {
     textAlign: "center",
-    color: "#999",
+    color: "#94a3b8",
     marginTop: 20,
+    fontSize: 14,
   },
 });

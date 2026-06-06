@@ -1,5 +1,6 @@
 import { Router } from "express";
 import type { Response } from "express";
+import { alias } from "drizzle-orm/pg-core";
 import { eq } from "drizzle-orm";
 import multer from "multer";
 import { db } from "../db";
@@ -17,6 +18,8 @@ const multerUpload = multer({ storage: multer.memoryStorage() });
 const router = Router();
 
 router.use(authenticate);
+
+const medicoAlias = alias(usuarios, "medico");
 
 router.get("/", async (req: AuthRequest, res: Response) => {
   const { id, tipo } = req.user!;
@@ -38,9 +41,14 @@ router.get("/", async (req: AuthRequest, res: Response) => {
         id: usuarios.id,
         nome: usuarios.nome,
       },
+      medico: {
+        id: medicoAlias.id,
+        nome: medicoAlias.nome,
+      },
     })
     .from(consultas)
     .leftJoin(usuarios, eq(usuarios.id, consultas.pacienteId))
+    .leftJoin(medicoAlias, eq(medicoAlias.id, consultas.medicoId))
     .where(filtro);
 
   res.json(lista);

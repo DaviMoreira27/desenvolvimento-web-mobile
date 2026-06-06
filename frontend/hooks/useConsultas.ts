@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "./auth/useAuth";
+import { useModal } from "./useModal";
 import { apiFetch } from "../lib/api";
 
 export type Consulta = {
@@ -9,11 +10,13 @@ export type Consulta = {
   status: string;
   statusPagamento: string;
   linkMeet: string | null;
-  paciente: { id: number; nome: string };
+  paciente: { id: number; nome: string } | null;
+  medico: { id: number; nome: string } | null;
 };
 
 export function useConsultas() {
   const { token } = useAuth();
+  const { consultasVersion } = useModal();
   const [consultas, setConsultas] = useState<Consulta[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -28,7 +31,7 @@ export function useConsultas() {
       .then(setConsultas)
       .catch((e) => setError(e.message))
       .finally(() => setIsLoading(false));
-  }, [token]);
+  }, [token, consultasVersion]);
 
   return { consultas, isLoading, error };
 }
