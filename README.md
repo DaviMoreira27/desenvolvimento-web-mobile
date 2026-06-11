@@ -33,7 +33,7 @@ cd Desenvolvimento-web-mobile
 O Docker Compose configurará o PostgreSQL automaticamente:
 
 ```bash
-docker-compose up
+docker compose up
 ```
 
 Você verá:
