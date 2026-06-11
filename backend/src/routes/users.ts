@@ -35,6 +35,7 @@ router.get("/me", authenticate, async (req: AuthRequest, res: Response) => {
       telefone: usuarios.telefone,
       fotoUrl: usuarios.fotoUrl,
       criadoEm: usuarios.criadoEm,
+      googleRefreshToken: usuarios.googleRefreshToken,
     })
     .from(usuarios)
     .where(eq(usuarios.id, req.user!.id));
@@ -44,7 +45,9 @@ router.get("/me", authenticate, async (req: AuthRequest, res: Response) => {
     return;
   }
 
-  res.json(usuario);
+  const { googleRefreshToken, ...usuarioSemToken } = usuario;
+
+  res.json({ ...usuarioSemToken, googleConectado: !!googleRefreshToken });
 });
 
 router.put(

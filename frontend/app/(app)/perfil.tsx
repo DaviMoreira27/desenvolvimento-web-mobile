@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
+  Linking,
   Modal,
   Platform,
   Pressable,
@@ -16,7 +17,9 @@ import { useUserProfile } from "../../hooks/useUserProfile";
 import { useUpdateProfile } from "../../hooks/useUpdateProfile";
 import { useMetas } from "../../hooks/useMetas";
 import { useToast } from "../../hooks/useToast";
+import { useAuth } from "../../hooks/auth/useAuth";
 import { DisponibilidadePanel } from "../../components/DisponibilidadePanel";
+import { API_URL } from "../../lib/api";
 
 type Tab = "dados" | "historico" | "metas";
 
@@ -34,6 +37,7 @@ export default function Perfil() {
   const { profile, isLoading, error, refetch } = useUserProfile();
   const { isLoading: isSaving, updateProfile } = useUpdateProfile();
   const { showToast } = useToast();
+  const { token } = useAuth();
 
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [editFields, setEditFields] = useState({
@@ -46,6 +50,31 @@ export default function Perfil() {
 
   const [newGoalOpen, setNewGoalOpen] = useState(false);
   const [goalFields, setGoalFields] = useState({ titulo: "", descricao: "" });
+
+  useEffect(() => {
+    if (Platform.OS !== "web" || typeof window === "undefined") return;
+
+    const params = new URLSearchParams(window.location.search);
+    const googleStatus = params.get("google");
+
+    if (!googleStatus) return;
+
+    if (googleStatus === "success") {
+      showToast("success", "Google conectado com sucesso!");
+      refetch();
+    } else {
+      showToast("error", "Não foi possível conectar com o Google.");
+    }
+
+    params.delete("google");
+    const newSearch = params.toString();
+    window.history.replaceState(
+      {},
+      "",
+      window.location.pathname + (newSearch ? `?${newSearch}` : "") + window.location.hash
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   if (isLoading) {
     return (
@@ -105,6 +134,18 @@ export default function Perfil() {
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Erro ao atualizar perfil";
       setEditError(msg);
+    }
+  }
+
+  function handleConnectGoogle() {
+    if (!token) return;
+
+    const url = `${API_URL}/oauth/google/auth?token=${encodeURIComponent(token)}`;
+
+    if (Platform.OS === "web") {
+      window.location.href = url;
+    } else {
+      Linking.openURL(url);
     }
   }
 
@@ -197,6 +238,18 @@ export default function Perfil() {
               >
                 <Text style={styles.availabilityButtonText}>Gerenciar Disponibilidade</Text>
               </TouchableOpacity>
+            )}
+
+            {profile.tipo === "medico" && (
+              profile.googleConectado ? (
+                <View style={styles.googleConnectedBadge}>
+                  <Text style={styles.googleConnectedText}>✓ Google Meet conectado</Text>
+                </View>
+              ) : (
+                <TouchableOpacity style={styles.googleButton} onPress={handleConnectGoogle}>
+                  <Text style={styles.googleButtonText}>Conectar Google</Text>
+                </TouchableOpacity>
+              )
             )}
           </View>
         )}
@@ -636,6 +689,34 @@ const styles = StyleSheet.create({
     color: "#19c10f",
     fontWeight: "700",
     fontSize: 15,
+  },
+
+  googleButton: {
+    marginTop: 10,
+    backgroundColor: "#4285F4",
+    borderRadius: 10,
+    paddingVertical: 12,
+    alignItems: "center",
+  },
+
+  googleButtonText: {
+    color: "#fff",
+    fontWeight: "700",
+    fontSize: 15,
+  },
+
+  googleConnectedBadge: {
+    marginTop: 10,
+    backgroundColor: "#f0fdf0",
+    borderRadius: 10,
+    paddingVertical: 12,
+    alignItems: "center",
+  },
+
+  googleConnectedText: {
+    color: "#15803d",
+    fontWeight: "700",
+    fontSize: 14,
   },
 
   modalOverlay: {

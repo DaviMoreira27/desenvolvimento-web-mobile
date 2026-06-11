@@ -39,6 +39,7 @@ export const usuarios = pgTable("usuarios", {
   tipo: tipoUsuarioEnum("tipo").notNull(),
   telefone: varchar("telefone", { length: 20 }),
   fotoUrl: text("foto_url"),
+  googleRefreshToken: text("google_refresh_token"),
   criadoEm: timestamp("criado_em").defaultNow().notNull(),
 });
 
@@ -85,6 +86,7 @@ export const consultas = pgTable("consultas", {
   tipo: tipoConsultaEnum("tipo").notNull(),
   status: statusConsultaEnum("status").default("agendada").notNull(),
   linkMeet: text("link_meet"),
+  googleEventId: text("google_event_id"),
   statusPagamento: statusPagamentoEnum("status_pagamento")
     .default("pendente")
     .notNull(),

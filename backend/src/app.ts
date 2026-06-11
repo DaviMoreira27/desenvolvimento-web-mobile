@@ -1,14 +1,15 @@
-import express from "express";
 import cors from "cors";
-import healthRouter from "./routes/health";
-import authRouter from "./routes/auth";
-import usersRouter from "./routes/users";
-import consultasRouter from "./routes/consultas";
-import protocolosRouter from "./routes/protocolos";
-import pagamentosRouter from "./routes/pagamentos";
-import metasRouter from "./routes/metas";
-import disponibilidadeRouter from "./routes/disponibilidade";
+import express from "express";
 import anamnesisRouter from "./routes/anamneses";
+import authRouter from "./routes/auth";
+import consultasRouter from "./routes/consultas";
+import disponibilidadeRouter from "./routes/disponibilidade";
+import healthRouter from "./routes/health";
+import metasRouter from "./routes/metas";
+import oauthGoogleRouter from "./routes/oauthGoogle";
+import pagamentosRouter from "./routes/pagamentos";
+import protocolosRouter from "./routes/protocolos";
+import usersRouter from "./routes/users";
 
 const app = express();
 
@@ -16,6 +17,7 @@ app.use(express.json());
 app.use(cors());
 
 app.use("/api", healthRouter);
+app.use("/oauth/google", oauthGoogleRouter);
 app.use("/api/auth", authRouter);
 app.use("/api/users", usersRouter);
 app.use("/api/consultas", consultasRouter);

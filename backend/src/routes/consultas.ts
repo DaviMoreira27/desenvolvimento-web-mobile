@@ -12,8 +12,11 @@ import { agendarConsultaSchema } from "../schemas/consulta.schema";
 import type { AgendarConsultaBody } from "../schemas/consulta.schema";
 import { consultaIdParamSchema } from "../schemas/documento.schema";
 import { azureStorage } from "../services/azureStorage";
+import { createMeetEvent } from "../services/googleMeet";
 
 const multerUpload = multer({ storage: multer.memoryStorage() });
+
+const CONSULTA_DURATION_MINUTES = 30;
 
 const router = Router();
 
@@ -94,7 +97,12 @@ router.post(
     }
 
     const [medico] = await db
-      .select({ id: usuarios.id })
+      .select({
+        id: usuarios.id,
+        nome: usuarios.nome,
+        email: usuarios.email,
+        googleRefreshToken: usuarios.googleRefreshToken,
+      })
       .from(usuarios)
       .where(eq(usuarios.id, medicoId));
 
@@ -172,7 +180,40 @@ router.post(
         return;
       }
 
-      res.status(201).json(consulta);
+      let consultaResponse: typeof consulta = consulta;
+
+      if (consulta && tipo === "teleconsulta" && medico.googleRefreshToken) {
+        try {
+          const [paciente] = await db
+            .select({ nome: usuarios.nome, email: usuarios.email })
+            .from(usuarios)
+            .where(eq(usuarios.id, req.user!.id));
+
+          const inicio = dataHoraDate;
+          const fim = new Date(inicio.getTime() + CONSULTA_DURATION_MINUTES * 60 * 1000);
+
+          const { meetLink, eventId } = await createMeetEvent({
+            refreshToken: medico.googleRefreshToken,
+            titulo: `Consulta VitalGoal: ${paciente?.nome ?? "Paciente"} e Dr(a). ${medico.nome}`,
+            descricao: "Teleconsulta agendada pela plataforma VitalGoal.",
+            inicio,
+            fim,
+            participantes: [medico.email, paciente?.email ?? req.user!.email],
+          });
+
+          const [updated] = await db
+            .update(consultas)
+            .set({ linkMeet: meetLink, googleEventId: eventId })
+            .where(eq(consultas.id, consulta.id))
+            .returning();
+
+          consultaResponse = updated;
+        } catch (err) {
+          console.error("Erro ao criar evento no Google Calendar:", err);
+        }
+      }
+
+      res.status(201).json(consultaResponse);
     } catch (err) {
       const pgError = err as { code?: string };
       if (pgError.code === "40001") {

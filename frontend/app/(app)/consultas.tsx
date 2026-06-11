@@ -1,6 +1,7 @@
 import { useState } from "react";
 import {
   ActivityIndicator,
+  Linking,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -212,12 +213,21 @@ export default function Consultas() {
                   <Text style={styles.docBtnText}>📄 Ver documentos</Text>
                 </Pressable>
 
-                {consulta.tipo === "teleconsulta" && consulta.linkMeet && (
-                  <Pressable
-                    style={({ pressed }) => [styles.meetBtn, pressed && { opacity: 0.85 }]}
-                  >
-                    <Text style={styles.meetBtnText}>🎥 Entrar via meet</Text>
-                  </Pressable>
+                {consulta.tipo === "teleconsulta" && (
+                  consulta.linkMeet ? (
+                    <Pressable
+                      style={({ pressed }) => [styles.meetBtn, pressed && { opacity: 0.85 }]}
+                      onPress={() => Linking.openURL(consulta.linkMeet!)}
+                    >
+                      <Text style={styles.meetBtnText}>🎥 Entrar via meet</Text>
+                    </Pressable>
+                  ) : (
+                    <View style={[styles.meetBtn, styles.meetBtnDisabled]}>
+                      <Text style={[styles.meetBtnText, styles.meetBtnTextDisabled]}>
+                        🎥 Aguardando link...
+                      </Text>
+                    </View>
+                  )
                 )}
               </View>
             </View>
@@ -496,6 +506,16 @@ const styles = StyleSheet.create({
     color: "#fff",
     fontSize: 13,
     fontWeight: "600",
+  },
+
+  meetBtnDisabled: {
+    backgroundColor: "#cbd5e1",
+    shadowOpacity: 0,
+    elevation: 0,
+  },
+
+  meetBtnTextDisabled: {
+    color: "#64748b",
   },
 
   errorText: {

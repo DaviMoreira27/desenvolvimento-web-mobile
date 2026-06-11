@@ -10,6 +10,7 @@ export type UserProfile = {
   telefone: string | null;
   fotoUrl: string | null;
   criadoEm: string;
+  googleConectado: boolean;
 };
 
 export function useUserProfile() {
