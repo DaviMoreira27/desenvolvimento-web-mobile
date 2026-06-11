@@ -45,5 +45,3 @@ Historico de Saude
 Listar pagamentos recebidos para o medico
 Listar pagamentos efetuados Paciente
 Cancelar Agendamento
-Botao para o usuario efetuar Pagamento*
-Criar um chat entre o medico e os pacientes que ele atende*
