@@ -2,6 +2,7 @@ import { useState } from "react";
 import {
   ActivityIndicator,
   Linking,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -14,6 +15,8 @@ import { useRouter } from "expo-router";
 import { useAuth } from "../../hooks/auth/useAuth";
 import { useConsultas } from "../../hooks/useConsultas";
 import { useModal } from "../../hooks/useModal";
+import { useUserProfile } from "../../hooks/useUserProfile";
+import { API_URL } from "../../lib/api";
 
 function StatusBadge({ status }: { status: string }) {
   const map: Record<string, { bg: string; text: string }> = {
@@ -57,13 +60,26 @@ export default function Consultas() {
   const [searchFocused, setSearchFocused] = useState(false);
   const { setOpenModal } = useModal();
   const { consultas, isLoading, error } = useConsultas();
-  const { usuario } = useAuth();
+  const { usuario, token } = useAuth();
+  const { profile } = useUserProfile();
   const router = useRouter();
   const { width } = useWindowDimensions();
 
   const isMedico = usuario?.tipo === "medico";
   const isNarrow = width < 560;
   const isVeryNarrow = width < 380;
+
+  function handleConnectGoogle() {
+    if (!token) return;
+
+    const url = `${API_URL}/oauth/google/auth?token=${encodeURIComponent(token)}`;
+
+    if (Platform.OS === "web") {
+      window.location.href = url;
+    } else {
+      Linking.openURL(url);
+    }
+  }
 
   const consultasFiltradas = consultas.filter((consulta) => {
     const q = searchText.toLowerCase();
@@ -214,7 +230,14 @@ export default function Consultas() {
                 </Pressable>
 
                 {consulta.tipo === "teleconsulta" && (
-                  consulta.linkMeet ? (
+                  isMedico && !profile?.googleConectado ? (
+                    <Pressable
+                      style={({ pressed }) => [styles.meetBtn, pressed && { opacity: 0.85 }]}
+                      onPress={handleConnectGoogle}
+                    >
+                      <Text style={styles.meetBtnText}>🔗 Conectar Google</Text>
+                    </Pressable>
+                  ) : consulta.linkMeet ? (
                     <Pressable
                       style={({ pressed }) => [styles.meetBtn, pressed && { opacity: 0.85 }]}
                       onPress={() => Linking.openURL(consulta.linkMeet!)}
