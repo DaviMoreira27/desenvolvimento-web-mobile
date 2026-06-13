@@ -1,20 +1,5 @@
 # Gaps de Implementação
 
-## Link Meet (Teleconsulta)
-
-**Status: não implementado**
-
-- Campo `linkMeet` existe no banco mas nunca é populado
-- Nenhum endpoint escreve nesse campo
-- Botão "Entrar via meet" no frontend não tem `onPress` handler
-
-**O que falta:**
-- Definir abordagem: link manual (médico informa) ou integração com Google Meet API
-- Endpoint `PATCH /api/consultas/:id` para o médico inserir o link, ou geração automática no `POST` quando tipo for `teleconsulta`
-- Handler no botão do frontend que chama `GET /api/consultas/:id/link` e abre o link
-
----
-
 ## Anamnese
 
 **Status: não integrado**
