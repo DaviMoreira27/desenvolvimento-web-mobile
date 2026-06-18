@@ -1,5 +1,7 @@
+import { useState } from "react";
 import {
   ActivityIndicator,
+  Pressable,
   ScrollView,
   StyleSheet,
   Text,
@@ -7,6 +9,7 @@ import {
 } from "react-native";
 import { useAuth } from "../../hooks/auth/useAuth";
 import { usePagamentos } from "../../hooks/usePagamentos";
+import { useToast } from "../../hooks/useToast";
 
 function StatusBadge({ status }: { status: string }) {
   const map: Record<string, { bg: string; text: string }> = {
@@ -36,9 +39,23 @@ function formatCurrency(value: number | string) {
 }
 
 export default function Pagamentos() {
-  const { pagamentos, isLoading, error } = usePagamentos();
+  const { pagamentos, isLoading, error, confirmarPagamento } = usePagamentos();
   const { usuario } = useAuth();
+  const { showToast } = useToast();
+  const [confirmandoId, setConfirmandoId] = useState<number | null>(null);
   const isMedico = usuario?.tipo === "medico";
+
+  async function handleConfirmarPagamento(id: number) {
+    setConfirmandoId(id);
+    try {
+      await confirmarPagamento(id);
+      showToast("success", "Pagamento confirmado.");
+    } catch {
+      showToast("error", "Erro ao confirmar pagamento. Tente novamente.");
+    } finally {
+      setConfirmandoId(null);
+    }
+  }
 
   if (isLoading) {
     return (
@@ -101,6 +118,24 @@ export default function Pagamentos() {
                 </Text>
               </View>
             </View>
+
+            {isMedico && p.status.toLowerCase() === "pendente" && (
+              <Pressable
+                style={({ pressed }) => [
+                  styles.confirmBtn,
+                  pressed && { opacity: 0.85 },
+                  confirmandoId === p.id && styles.buttonDisabled,
+                ]}
+                onPress={() => handleConfirmarPagamento(p.id)}
+                disabled={confirmandoId === p.id}
+              >
+                {confirmandoId === p.id ? (
+                  <ActivityIndicator size="small" color="#fff" />
+                ) : (
+                  <Text style={styles.confirmBtnText}>Confirmar pagamento</Text>
+                )}
+              </Pressable>
+            )}
           </View>
         ))
       )}
@@ -215,6 +250,29 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: "#374151",
     fontWeight: "500",
+  },
+
+  confirmBtn: {
+    backgroundColor: "#19c10f",
+    paddingVertical: 11,
+    borderRadius: 10,
+    alignItems: "center",
+    marginTop: 16,
+    shadowColor: "#19c10f",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+
+  confirmBtnText: {
+    color: "#fff",
+    fontWeight: "700",
+    fontSize: 14,
+  },
+
+  buttonDisabled: {
+    opacity: 0.6,
   },
 
   errorText: {

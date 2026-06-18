@@ -241,7 +241,7 @@ export default function Inicio() {
                   {pagamento.descricao || "Consulta"}
                 </Text>
                 <Text style={styles.rowText}>
-                  R$ {pagamento.valor.toFixed(2)}
+                  R$ {Number(pagamento.valor).toFixed(2)}
                 </Text>
                 <View style={styles.rowCell}>
                   <StatusBadge status={pagamento.status} />

@@ -4,7 +4,7 @@ import { apiFetch } from "../lib/api";
 
 export type Pagamento = {
   id: number;
-  valor: number;
+  valor: string;
   status: string;
   descricao: string | null;
   criadoEm: string;
@@ -30,5 +30,13 @@ export function usePagamentos() {
       .finally(() => setIsLoading(false));
   }, [token]);
 
-  return { pagamentos, isLoading, error };
+  async function confirmarPagamento(id: number) {
+    if (!token) throw new Error("Não autenticado");
+    await apiFetch(`/api/pagamentos/${id}/confirmar`, { method: "PATCH", token });
+    setPagamentos((prev) =>
+      prev.map((p) => (p.id === id ? { ...p, status: "aprovado" } : p))
+    );
+  }
+
+  return { pagamentos, isLoading, error, confirmarPagamento };
 }

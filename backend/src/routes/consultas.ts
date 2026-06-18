@@ -18,6 +18,11 @@ const multerUpload = multer({ storage: multer.memoryStorage() });
 
 const CONSULTA_DURATION_MINUTES = 30;
 
+const VALOR_CONSULTA: Record<AgendarConsultaBody["tipo"], string> = {
+  presencial: "150.00",
+  teleconsulta: "100.00",
+};
+
 const router = Router();
 
 router.use(authenticate);
@@ -169,6 +174,13 @@ router.post(
               tipo,
             })
             .returning();
+
+          await tx.insert(pagamentos).values({
+            consultaId: newConsulta!.id,
+            pacienteId: req.user!.id,
+            valor: VALOR_CONSULTA[tipo],
+            descricao: `Consulta ${tipo === "teleconsulta" ? "online" : "presencial"} em ${datePart} às ${horarioInicio}`,
+          });
 
           return newConsulta;
         },

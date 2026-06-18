@@ -325,6 +325,12 @@ export default function Consultas() {
                   <Text style={styles.docBtnText}>📄 Ver documentos</Text>
                 </Pressable>
 
+                {!isMedico && consulta.statusPagamento.toLowerCase() === "pendente" && (
+                  <View style={styles.payBtn}>
+                    <Text style={styles.payBtnText}>💳 Pagar consulta</Text>
+                  </View>
+                )}
+
                 {isMedico && consulta.paciente?.id != null && (
                   <Pressable
                     style={({ pressed }) => [styles.docBtn, pressed && { opacity: 0.75 }]}
@@ -702,6 +708,19 @@ const styles = StyleSheet.create({
     color: "#475569",
     fontSize: 13,
     fontWeight: "500",
+  },
+
+  payBtn: {
+    backgroundColor: "#fef3c7",
+    paddingHorizontal: 14,
+    paddingVertical: 9,
+    borderRadius: 8,
+  },
+
+  payBtnText: {
+    color: "#b45309",
+    fontSize: 13,
+    fontWeight: "600",
   },
 
   meetBtn: {

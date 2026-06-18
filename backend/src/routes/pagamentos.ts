@@ -75,4 +75,51 @@ router.get("/:id", async (req: AuthRequest, res: Response) => {
   res.json(pagamento);
 });
 
+router.patch("/:id/confirmar", async (req: AuthRequest, res: Response) => {
+  if (req.user!.tipo !== "medico") {
+    res.status(403).json({ message: "Apenas médicos podem confirmar pagamentos." });
+    return;
+  }
+
+  const id = Number(req.params.id);
+
+  const [pagamento] = await db
+    .select()
+    .from(pagamentos)
+    .where(eq(pagamentos.id, id));
+
+  if (!pagamento) {
+    res.status(404).json({ message: "Pagamento não encontrado." });
+    return;
+  }
+
+  const [consulta] = await db
+    .select({ medicoId: consultas.medicoId })
+    .from(consultas)
+    .where(eq(consultas.id, pagamento.consultaId));
+
+  if (consulta?.medicoId !== req.user!.id) {
+    res.status(403).json({ message: "Acesso negado." });
+    return;
+  }
+
+  if (pagamento.status !== "pendente") {
+    res.status(422).json({ message: "Apenas pagamentos pendentes podem ser confirmados." });
+    return;
+  }
+
+  const [atualizado] = await db
+    .update(pagamentos)
+    .set({ status: "aprovado" })
+    .where(eq(pagamentos.id, id))
+    .returning();
+
+  await db
+    .update(consultas)
+    .set({ statusPagamento: "aprovado" })
+    .where(eq(consultas.id, pagamento.consultaId));
+
+  res.json(atualizado);
+});
+
 export default router;
