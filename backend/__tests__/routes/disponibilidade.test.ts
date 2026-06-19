@@ -284,3 +284,107 @@ describe("GET /api/disponibilidade/slots-livres", () => {
     expect(res.body).toEqual([]);
   });
 });
+
+describe("GET /api/disponibilidade/datas-disponiveis", () => {
+  const BASE = "/api/disponibilidade/datas-disponiveis";
+
+  // 2026-06-23 = terca, 2026-06-24 = quarta, 2026-06-25 = quinta, 2026-06-30 = terca
+  const slotTerca = { id: 1, medicoId: 5, diaSemana: "terca", horarioInicio: "08:00", criadoEm: new Date().toISOString() };
+
+  beforeEach(() => {
+    mockSelect.mockReset();
+    currentMockUser = { ...mockUser };
+  });
+
+  it("dado ausência de medicoId, retorna 400", async () => {
+    const res = await request(app)
+      .get(`${BASE}?inicio=2026-06-23&fim=2026-06-25`)
+      .set("Authorization", "Bearer valid-token");
+
+    expect(res.status).toBe(400);
+    expect(mockSelect).not.toHaveBeenCalled();
+  });
+
+  it("dado ausência de inicio, retorna 400", async () => {
+    const res = await request(app)
+      .get(`${BASE}?medicoId=5&fim=2026-06-25`)
+      .set("Authorization", "Bearer valid-token");
+
+    expect(res.status).toBe(400);
+    expect(mockSelect).not.toHaveBeenCalled();
+  });
+
+  it("dado ausência de fim, retorna 400", async () => {
+    const res = await request(app)
+      .get(`${BASE}?medicoId=5&inicio=2026-06-23`)
+      .set("Authorization", "Bearer valid-token");
+
+    expect(res.status).toBe(400);
+    expect(mockSelect).not.toHaveBeenCalled();
+  });
+
+  it("dado um médico sem slots configurados, retorna array vazio sem consultar consultas", async () => {
+    mockSelect.mockReturnValueOnce(makeSelectChainNoLimit([]));
+
+    const res = await request(app)
+      .get(`${BASE}?medicoId=5&inicio=2026-06-23&fim=2026-06-25`)
+      .set("Authorization", "Bearer valid-token");
+
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual([]);
+    expect(mockSelect).toHaveBeenCalledTimes(1);
+  });
+
+  it("dado slots configurados, retorna datas com ao menos um slot livre no intervalo", async () => {
+    // terca tem 08:00 e 10:00; 08:00 está reservado em 2026-06-23, mas 10:00 está livre
+    const slots = [
+      slotTerca,
+      { id: 2, medicoId: 5, diaSemana: "terca", horarioInicio: "10:00", criadoEm: new Date().toISOString() },
+    ];
+    const booked = [{ dataHora: new Date("2026-06-23T08:00:00.000Z") }];
+
+    mockSelect
+      .mockReturnValueOnce(makeSelectChainNoLimit(slots))
+      .mockReturnValueOnce(makeSelectChainNoLimit(booked));
+
+    const res = await request(app)
+      .get(`${BASE}?medicoId=5&inicio=2026-06-23&fim=2026-06-25`)
+      .set("Authorization", "Bearer valid-token");
+
+    expect(res.status).toBe(200);
+    expect(res.body).toContain("2026-06-23");
+    // quarta e quinta não têm slots configurados
+    expect(res.body).toHaveLength(1);
+  });
+
+  it("dado todas as datas do intervalo completamente reservadas, retorna array vazio", async () => {
+    // terca tem apenas 08:00, que está reservado em 2026-06-23
+    const booked = [{ dataHora: new Date("2026-06-23T08:00:00.000Z") }];
+
+    mockSelect
+      .mockReturnValueOnce(makeSelectChainNoLimit([slotTerca]))
+      .mockReturnValueOnce(makeSelectChainNoLimit(booked));
+
+    const res = await request(app)
+      .get(`${BASE}?medicoId=5&inicio=2026-06-23&fim=2026-06-25`)
+      .set("Authorization", "Bearer valid-token");
+
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual([]);
+  });
+
+  it("datas fora do intervalo solicitado não aparecem no resultado", async () => {
+    // 2026-06-23 (terca) está dentro do intervalo; 2026-06-30 (terca) está fora (fim=2026-06-26)
+    mockSelect
+      .mockReturnValueOnce(makeSelectChainNoLimit([slotTerca]))
+      .mockReturnValueOnce(makeSelectChainNoLimit([]));
+
+    const res = await request(app)
+      .get(`${BASE}?medicoId=5&inicio=2026-06-23&fim=2026-06-26`)
+      .set("Authorization", "Bearer valid-token");
+
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual(["2026-06-23"]);
+    expect(res.body).not.toContain("2026-06-30");
+  });
+});
