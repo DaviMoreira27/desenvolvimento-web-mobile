@@ -24,13 +24,14 @@ jest.mock("../../src/services/googleMeet", () => ({
 
 const mockSelect = jest.fn();
 const mockSelectDistinct = jest.fn();
+const mockUpdate = jest.fn();
 
 jest.mock("../../src/db", () => ({
   db: {
     select: mockSelect,
     selectDistinct: mockSelectDistinct,
     insert: jest.fn(),
-    update: jest.fn(),
+    update: mockUpdate,
     transaction: jest.fn(),
   },
 }));
@@ -59,6 +60,12 @@ function makeGetByIdChain(result: unknown[]) {
     from: jest.fn().mockReturnValue({ where: whereFn }),
   });
   return { whereFn };
+}
+
+function makeUpdateConcluirChain(result: unknown[]) {
+  const returningFn = jest.fn().mockResolvedValue(result);
+  const whereFn = jest.fn().mockReturnValue({ returning: returningFn });
+  mockUpdate.mockReturnValueOnce({ set: jest.fn().mockReturnValue({ where: whereFn }) });
 }
 
 function makeGetPacientesChain(result: unknown[]) {
@@ -235,5 +242,86 @@ describe("GET /api/consultas/pacientes", () => {
     expect(res.status).toBe(200);
     expect(res.body).toEqual(fakePacientes);
     expect(whereFn).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("GET /api/consultas/:id/documentos — access control", () => {
+  beforeEach(() => {
+    mockSelect.mockReset();
+    currentMockUser = { ...pacienteUser };
+  });
+
+  it("dado um usuário que não participa da consulta, retorna 403", async () => {
+    currentMockUser = { id: 99, email: "other@test.com", tipo: "paciente" as const };
+    makeGetByIdChain([{ pacienteId: 10, medicoId: 20 }]);
+
+    const res = await request(app)
+      .get("/api/consultas/1/documentos")
+      .set("Authorization", "Bearer valid-token");
+
+    expect(res.status).toBe(403);
+  });
+});
+
+describe("PATCH /api/consultas/:id/concluir", () => {
+  const consultaAgendada = { id: 1, medicoId: 20, status: "agendada" };
+
+  beforeEach(() => {
+    mockSelect.mockReset();
+    mockUpdate.mockReset();
+    currentMockUser = { ...medicoUser };
+  });
+
+  it("dado um paciente, retorna 403 sem consultar o banco", async () => {
+    currentMockUser = { ...pacienteUser };
+
+    const res = await request(app)
+      .patch("/api/consultas/1/concluir")
+      .set("Authorization", "Bearer valid-token");
+
+    expect(res.status).toBe(403);
+    expect(mockSelect).not.toHaveBeenCalled();
+  });
+
+  it("dado um ID de consulta inexistente, retorna 404", async () => {
+    makeGetByIdChain([]);
+
+    const res = await request(app)
+      .patch("/api/consultas/999/concluir")
+      .set("Authorization", "Bearer valid-token");
+
+    expect(res.status).toBe(404);
+  });
+
+  it("dado um médico que não é o responsável pela consulta, retorna 403", async () => {
+    makeGetByIdChain([{ id: 1, medicoId: 88, status: "agendada" }]);
+
+    const res = await request(app)
+      .patch("/api/consultas/1/concluir")
+      .set("Authorization", "Bearer valid-token");
+
+    expect(res.status).toBe(403);
+  });
+
+  it("dado uma consulta com status diferente de agendada, retorna 422", async () => {
+    makeGetByIdChain([{ id: 1, medicoId: 20, status: "concluida" }]);
+
+    const res = await request(app)
+      .patch("/api/consultas/1/concluir")
+      .set("Authorization", "Bearer valid-token");
+
+    expect(res.status).toBe(422);
+  });
+
+  it("dado uma consulta agendada do próprio médico, retorna 200 com status concluida", async () => {
+    makeGetByIdChain([consultaAgendada]);
+    makeUpdateConcluirChain([{ ...consultaAgendada, status: "concluida" }]);
+
+    const res = await request(app)
+      .patch("/api/consultas/1/concluir")
+      .set("Authorization", "Bearer valid-token");
+
+    expect(res.status).toBe(200);
+    expect(res.body).toMatchObject({ id: 1, status: "concluida" });
   });
 });
