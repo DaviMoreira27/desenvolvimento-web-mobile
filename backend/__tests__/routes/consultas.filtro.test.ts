@@ -53,6 +53,14 @@ function makeGetConsultasChain(result: unknown[]) {
   return { whereFn };
 }
 
+function makeGetByIdChain(result: unknown[]) {
+  const whereFn = jest.fn().mockResolvedValue(result);
+  mockSelect.mockReturnValueOnce({
+    from: jest.fn().mockReturnValue({ where: whereFn }),
+  });
+  return { whereFn };
+}
+
 function makeGetPacientesChain(result: unknown[]) {
   const whereFn = jest.fn().mockResolvedValue(result);
   mockSelectDistinct.mockReturnValueOnce({
@@ -122,6 +130,73 @@ describe("GET /api/consultas — user filter", () => {
     expect(res.status).toBe(200);
     expect(res.body).toEqual(fakeRows);
     expect(whereFn).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("GET /api/consultas/:id", () => {
+  const fakeConsulta = {
+    id: 1,
+    pacienteId: 10,
+    medicoId: 20,
+    dataHora: new Date("2026-06-20T10:00:00.000Z"),
+    tipo: "presencial",
+    status: "agendada",
+    statusPagamento: "pendente",
+    linkMeet: null,
+    googleEventId: null,
+    criadoEm: new Date("2026-06-01T00:00:00.000Z"),
+  };
+
+  beforeEach(() => {
+    mockSelect.mockReset();
+    mockSelectDistinct.mockReset();
+    currentMockUser = { ...pacienteUser };
+  });
+
+  it("dado um ID inexistente, retorna 404", async () => {
+    makeGetByIdChain([]);
+
+    const res = await request(app)
+      .get("/api/consultas/999")
+      .set("Authorization", "Bearer valid-token");
+
+    expect(res.status).toBe(404);
+    expect(res.body).toMatchObject({ message: expect.any(String) });
+  });
+
+  it("dado um usuário que não é paciente nem médico da consulta, retorna 403", async () => {
+    currentMockUser = { id: 99, email: "other@test.com", tipo: "paciente" as const };
+    makeGetByIdChain([fakeConsulta]);
+
+    const res = await request(app)
+      .get("/api/consultas/1")
+      .set("Authorization", "Bearer valid-token");
+
+    expect(res.status).toBe(403);
+  });
+
+  it("dado o paciente dono da consulta, retorna 200 com os dados", async () => {
+    currentMockUser = { ...pacienteUser };
+    makeGetByIdChain([fakeConsulta]);
+
+    const res = await request(app)
+      .get("/api/consultas/1")
+      .set("Authorization", "Bearer valid-token");
+
+    expect(res.status).toBe(200);
+    expect(res.body).toMatchObject({ id: 1, pacienteId: 10, medicoId: 20 });
+  });
+
+  it("dado o médico dono da consulta, retorna 200 com os dados", async () => {
+    currentMockUser = { ...medicoUser };
+    makeGetByIdChain([fakeConsulta]);
+
+    const res = await request(app)
+      .get("/api/consultas/1")
+      .set("Authorization", "Bearer valid-token");
+
+    expect(res.status).toBe(200);
+    expect(res.body).toMatchObject({ id: 1, pacienteId: 10, medicoId: 20 });
   });
 });
 
