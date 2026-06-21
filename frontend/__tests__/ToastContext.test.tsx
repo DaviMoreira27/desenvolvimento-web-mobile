@@ -8,6 +8,9 @@ function wrapper({ children }: { children: React.ReactNode }) {
 }
 
 describe("ToastContext", () => {
+  beforeEach(() => jest.useFakeTimers());
+  afterEach(() => jest.useRealTimers());
+
   it("starts with an empty toasts array", async () => {
     const { result, unmount } = await renderHook(() => useContext(ToastContext), { wrapper });
     expect(result.current!.toasts).toEqual([]);
@@ -51,7 +54,6 @@ describe("ToastContext", () => {
   });
 
   it("auto-dismiss fires removeToast after 3000 ms", async () => {
-    jest.useFakeTimers();
     const { result, unmount } = await renderHook(() => useContext(ToastContext), { wrapper });
     await act(async () => {
       result.current!.addToast("success", "Consulta agendada com sucesso!");
@@ -62,11 +64,9 @@ describe("ToastContext", () => {
     });
     expect(result.current!.toasts).toHaveLength(0);
     unmount();
-    jest.useRealTimers();
   });
 
   it("does not auto-dismiss before 3000 ms", async () => {
-    jest.useFakeTimers();
     const { result, unmount } = await renderHook(() => useContext(ToastContext), { wrapper });
     await act(async () => {
       result.current!.addToast("success", "Documento enviado com sucesso.");
@@ -76,11 +76,9 @@ describe("ToastContext", () => {
     });
     expect(result.current!.toasts).toHaveLength(1);
     unmount();
-    jest.useRealTimers();
   });
 
   it("two toasts added at different times have independent timers", async () => {
-    jest.useFakeTimers();
     const { result, unmount } = await renderHook(() => useContext(ToastContext), { wrapper });
     await act(async () => {
       result.current!.addToast("success", "First");

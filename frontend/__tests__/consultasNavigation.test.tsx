@@ -32,6 +32,10 @@ jest.mock("../hooks/useModal", () => ({
   useModal: () => ({ setOpenModal: jest.fn() }),
 }));
 
+jest.mock("../hooks/useToast", () => ({
+  useToast: () => ({ toasts: [], showToast: jest.fn() }),
+}));
+
 beforeEach(() => {
   mockPush.mockClear();
 });
