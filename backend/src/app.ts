@@ -11,10 +11,24 @@ import pagamentosRouter from "./routes/pagamentos";
 import protocolosRouter from "./routes/protocolos";
 import usersRouter from "./routes/users";
 
+const ALLOWED_ORIGINS = process.env.ALLOWED_ORIGINS
+  ? process.env.ALLOWED_ORIGINS.split(",")
+  : ["http://localhost:8081"];
+
 const app = express();
 
 app.use(express.json());
-app.use(cors());
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      if (!origin || ALLOWED_ORIGINS.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error(`CORS: origin ${origin} not allowed`));
+      }
+    },
+  })
+);
 
 app.use("/api", healthRouter);
 app.use("/oauth/google", oauthGoogleRouter);
