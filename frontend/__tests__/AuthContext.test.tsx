@@ -1,16 +1,16 @@
 import React from "react";
 import { renderHook, waitFor, act } from "@testing-library/react-native";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import * as SecureStore from "expo-secure-store";
 import { AuthProvider, AuthContext } from "../hooks/auth/AuthContext";
 import { useContext } from "react";
 
-jest.mock("@react-native-async-storage/async-storage", () => ({
-  setItem: jest.fn(() => Promise.resolve()),
-  getItem: jest.fn(() => Promise.resolve(null)),
-  removeItem: jest.fn(() => Promise.resolve()),
+jest.mock("expo-secure-store", () => ({
+  getItemAsync: jest.fn(() => Promise.resolve(null)),
+  setItemAsync: jest.fn(() => Promise.resolve()),
+  deleteItemAsync: jest.fn(() => Promise.resolve()),
 }));
 
-const mockAsyncStorage = AsyncStorage as jest.Mocked<typeof AsyncStorage>;
+const mockSecureStore = SecureStore as jest.Mocked<typeof SecureStore>;
 
 function wrapper({ children }: { children: React.ReactNode }) {
   return React.createElement(AuthProvider, null, children);
@@ -30,7 +30,7 @@ describe("AuthContext", () => {
   });
 
   it("starts as loading, then resolves with null when no stored auth", async () => {
-    mockAsyncStorage.getItem.mockResolvedValue(null);
+    mockSecureStore.getItemAsync.mockResolvedValue(null);
 
     const { result, unmount } = await renderHook(() => useContext(AuthContext), { wrapper });
 
@@ -43,8 +43,8 @@ describe("AuthContext", () => {
     unmount();
   });
 
-  it("restores token and user from AsyncStorage on mount", async () => {
-    mockAsyncStorage.getItem
+  it("restores token and user from SecureStore on mount", async () => {
+    mockSecureStore.getItemAsync
       .mockResolvedValueOnce(fakeToken)
       .mockResolvedValueOnce(JSON.stringify(fakeUser));
 
@@ -60,7 +60,7 @@ describe("AuthContext", () => {
   });
 
   it("does not restore if only token is stored (no user)", async () => {
-    mockAsyncStorage.getItem
+    mockSecureStore.getItemAsync
       .mockResolvedValueOnce(fakeToken)
       .mockResolvedValueOnce(null);
 
@@ -75,8 +75,8 @@ describe("AuthContext", () => {
     unmount();
   });
 
-  it("login saves token and user to AsyncStorage", async () => {
-    mockAsyncStorage.getItem.mockResolvedValue(null);
+  it("login saves token and user to SecureStore", async () => {
+    mockSecureStore.getItemAsync.mockResolvedValue(null);
 
     const { result, unmount } = await renderHook(() => useContext(AuthContext), { wrapper });
 
@@ -86,19 +86,19 @@ describe("AuthContext", () => {
       await result.current.login(fakeToken, fakeUser);
     });
 
-    expect(mockAsyncStorage.setItem).toHaveBeenCalledWith(
-      "@vitalgoal:token",
+    expect(mockSecureStore.setItemAsync).toHaveBeenCalledWith(
+      "vitalgoal_token",
       fakeToken
     );
-    expect(mockAsyncStorage.setItem).toHaveBeenCalledWith(
-      "@vitalgoal:usuario",
+    expect(mockSecureStore.setItemAsync).toHaveBeenCalledWith(
+      "vitalgoal_usuario",
       JSON.stringify(fakeUser)
     );
     unmount();
   });
 
   it("login updates token and usuario in state", async () => {
-    mockAsyncStorage.getItem.mockResolvedValue(null);
+    mockSecureStore.getItemAsync.mockResolvedValue(null);
 
     const { result, unmount } = await renderHook(() => useContext(AuthContext), { wrapper });
 
@@ -113,8 +113,8 @@ describe("AuthContext", () => {
     unmount();
   });
 
-  it("logout removes token and user from AsyncStorage", async () => {
-    mockAsyncStorage.getItem
+  it("logout removes token and user from SecureStore", async () => {
+    mockSecureStore.getItemAsync
       .mockResolvedValueOnce(fakeToken)
       .mockResolvedValueOnce(JSON.stringify(fakeUser));
 
@@ -126,13 +126,13 @@ describe("AuthContext", () => {
       await result.current.logout();
     });
 
-    expect(mockAsyncStorage.removeItem).toHaveBeenCalledWith("@vitalgoal:token");
-    expect(mockAsyncStorage.removeItem).toHaveBeenCalledWith("@vitalgoal:usuario");
+    expect(mockSecureStore.deleteItemAsync).toHaveBeenCalledWith("vitalgoal_token");
+    expect(mockSecureStore.deleteItemAsync).toHaveBeenCalledWith("vitalgoal_usuario");
     unmount();
   });
 
   it("logout clears token and usuario from state", async () => {
-    mockAsyncStorage.getItem
+    mockSecureStore.getItemAsync
       .mockResolvedValueOnce(fakeToken)
       .mockResolvedValueOnce(JSON.stringify(fakeUser));
 

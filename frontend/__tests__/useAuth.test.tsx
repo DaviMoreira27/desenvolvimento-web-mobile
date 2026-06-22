@@ -1,13 +1,13 @@
 import React from "react";
 import { renderHook, waitFor } from "@testing-library/react-native";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import * as SecureStore from "expo-secure-store";
 import { AuthProvider } from "../hooks/auth/AuthContext";
 import { useAuth } from "../hooks/auth/useAuth";
 
-jest.mock("@react-native-async-storage/async-storage", () => ({
-  setItem: jest.fn(() => Promise.resolve()),
-  getItem: jest.fn(() => Promise.resolve(null)),
-  removeItem: jest.fn(() => Promise.resolve()),
+jest.mock("expo-secure-store", () => ({
+  getItemAsync: jest.fn(() => Promise.resolve(null)),
+  setItemAsync: jest.fn(() => Promise.resolve()),
+  deleteItemAsync: jest.fn(() => Promise.resolve()),
 }));
 
 function wrapper({ children }: { children: React.ReactNode }) {
@@ -28,11 +28,11 @@ describe("useAuth", () => {
   });
 
   it("dado AsyncStorage com dados salvos, retorna o token e usuário restaurados", async () => {
-    const mockAsyncStorage = AsyncStorage as jest.Mocked<typeof AsyncStorage>;
+    const mockSecureStore = SecureStore as jest.Mocked<typeof SecureStore>;
     const fakeToken = "stored-jwt";
     const fakeUser = { id: 1, nome: "Ana", email: "ana@test.com", tipo: "paciente" as const };
 
-    mockAsyncStorage.getItem
+    mockSecureStore.getItemAsync
       .mockResolvedValueOnce(fakeToken)
       .mockResolvedValueOnce(JSON.stringify(fakeUser));
 

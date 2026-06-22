@@ -7,4 +7,7 @@ module.exports = {
   transform: {
     '^.+\\.tsx?$': ['ts-jest', { isolatedModules: true }],
   },
+  collectCoverage: true,
+  coverageReporters: ['json-summary', 'text', 'lcov'],
+  maxWorkers: 2,
 };

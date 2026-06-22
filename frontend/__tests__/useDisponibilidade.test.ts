@@ -1,14 +1,15 @@
 import { renderHook, waitFor, act } from "@testing-library/react-native";
-import { useDisponibilidade, type DisponibilidadeSlot } from "../hooks/useDisponibilidade";
+import { useDisponibilidade, useDatasDisponiveis, type DisponibilidadeSlot } from "../hooks/useDisponibilidade";
 
 const mockApiFetch = jest.fn();
+const mockAuthState = { token: "test-token" as string | null };
 
 jest.mock("../lib/api", () => ({
   apiFetch: (...args: unknown[]) => mockApiFetch(...args),
 }));
 
 jest.mock("../hooks/auth/useAuth", () => ({
-  useAuth: () => ({ token: "test-token" }),
+  useAuth: () => mockAuthState,
 }));
 
 const fakeSlot: DisponibilidadeSlot = {
@@ -22,6 +23,7 @@ const fakeSlot: DisponibilidadeSlot = {
 describe("useDisponibilidade", () => {
   beforeEach(() => {
     mockApiFetch.mockReset();
+    mockAuthState.token = "test-token";
   });
 
   it("fetches slots on mount and populates the list", async () => {
@@ -148,5 +150,94 @@ describe("useDisponibilidade", () => {
       expect(result.current.error).toBe("Acesso negado.");
       expect(result.current.slots).toHaveLength(1);
     });
+  });
+
+  it("sets error when initial fetch throws", async () => {
+    mockApiFetch.mockRejectedValueOnce(new Error("Falha na rede"));
+
+    const { result } = await renderHook(() => useDisponibilidade());
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    expect(result.current.error).toBe("Falha na rede");
+    expect(result.current.slots).toHaveLength(0);
+  });
+
+  it("sets generic error message when thrown value is not an Error", async () => {
+    mockApiFetch.mockRejectedValueOnce("string error");
+
+    const { result } = await renderHook(() => useDisponibilidade());
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    expect(result.current.error).toBe("Erro desconhecido");
+  });
+});
+
+describe("useDatasDisponiveis", () => {
+  beforeEach(() => {
+    mockApiFetch.mockReset();
+    mockAuthState.token = "test-token";
+  });
+
+  it("returns empty datas and does not fetch when medicoId is null", async () => {
+    const { result } = await renderHook(() => useDatasDisponiveis(null));
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    expect(result.current.datas.size).toBe(0);
+    expect(mockApiFetch).not.toHaveBeenCalled();
+  });
+
+  it("returns empty datas and does not fetch when token is null", async () => {
+    mockAuthState.token = null;
+
+    const { result } = await renderHook(() => useDatasDisponiveis(42));
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    expect(result.current.datas.size).toBe(0);
+    expect(mockApiFetch).not.toHaveBeenCalled();
+  });
+
+  it("fetches available dates when medicoId and token are provided", async () => {
+    const fakeDates = ["2026-07-01", "2026-07-03", "2026-07-05"];
+    mockApiFetch.mockResolvedValueOnce(fakeDates);
+
+    const { result } = await renderHook(() => useDatasDisponiveis(42));
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    expect(result.current.datas).toEqual(new Set(fakeDates));
+    expect(mockApiFetch).toHaveBeenCalledTimes(1);
+    expect(mockApiFetch).toHaveBeenCalledWith(
+      expect.stringContaining("medicoId=42"),
+      expect.objectContaining({ token: "test-token" })
+    );
+  });
+
+  it("returns empty datas on fetch error", async () => {
+    mockApiFetch.mockRejectedValueOnce(new Error("Servidor indisponível"));
+
+    const { result } = await renderHook(() => useDatasDisponiveis(42));
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    expect(result.current.datas.size).toBe(0);
+  });
+
+  it("resets datas when medicoId changes to null", async () => {
+    const fakeDates = ["2026-07-01"];
+    mockApiFetch.mockResolvedValueOnce(fakeDates);
+
+    let medicoId: number | null = 42;
+    const { result, rerender } = await renderHook(() => useDatasDisponiveis(medicoId));
+
+    await waitFor(() => expect(result.current.datas.size).toBe(1));
+
+    medicoId = null;
+    rerender({});
+
+    await waitFor(() => expect(result.current.datas.size).toBe(0));
   });
 });
