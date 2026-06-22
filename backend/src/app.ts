@@ -13,7 +13,7 @@ import pagamentosRouter from "./routes/pagamentos";
 import protocolosRouter from "./routes/protocolos";
 import usersRouter from "./routes/users";
 
-const testing = true;
+const testing = false;
 
 const app = express();
 
