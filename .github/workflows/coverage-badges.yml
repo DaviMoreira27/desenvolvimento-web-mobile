@@ -1,0 +1,62 @@
+name: Coverage Badges
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: coverage-badges
+  cancel-in-progress: true
+
+jobs:
+  badges:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: |
+            backend/package-lock.json
+            frontend/package-lock.json
+
+      - name: Backend coverage
+        working-directory: backend
+        run: |
+          npm ci
+          npx jest --ci --forceExit --coverage \
+            --coverageReporters=json-summary \
+            --collectCoverageFrom='src/**/*.ts' \
+            --collectCoverageFrom='!src/**/*.d.ts'
+
+      - name: Frontend coverage
+        working-directory: frontend
+        run: |
+          npm ci
+          npx jest --ci --forceExit --coverage \
+            --coverageReporters=json-summary \
+            --collectCoverageFrom='app/**/*.{ts,tsx}' \
+            --collectCoverageFrom='components/**/*.{ts,tsx}' \
+            --collectCoverageFrom='hooks/**/*.{ts,tsx}' \
+            --collectCoverageFrom='lib/**/*.{ts,tsx}' \
+            --collectCoverageFrom='!**/*.d.ts'
+
+      - name: Update README badges
+        run: node .github/scripts/update-coverage-badges.mjs
+
+      - name: Commit badge changes
+        run: |
+          if git diff --quiet README.md; then
+            echo "No badge changes."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add README.md
+          git commit -m "ci: update coverage badges [skip ci]"
+          git push

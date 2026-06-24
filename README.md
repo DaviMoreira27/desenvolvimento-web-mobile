@@ -1,6 +1,11 @@
 # VitalGoal - Guia de Setup Completo
 
-[![PR Tests](https://github.com/LHuss31/Desenvolvimento-web-mobile/actions/workflows/pr-tests.yml/badge.svg)](https://github.com/LHuss31/Desenvolvimento-web-mobile/actions/workflows/pr-tests.yml)
+[![PR Tests](https://github.com/DaviMoreira27/desenvolvimento-web-mobile/actions/workflows/pr-tests.yml/badge.svg)](https://github.com/DaviMoreira27/desenvolvimento-web-mobile/actions/workflows/pr-tests.yml)
+
+<!-- COVERAGE-BADGES:START -->
+![frontend coverage](https://img.shields.io/badge/frontend%20coverage-pending-lightgrey)
+![backend coverage](https://img.shields.io/badge/backend%20coverage-pending-lightgrey)
+<!-- COVERAGE-BADGES:END -->
 
 Aplicação fullstack de gerenciamento de consultas, protocolos e pagamentos para pacientes e médicos.
 
@@ -26,8 +31,8 @@ git --version
 ### Passo 1: Clonar o repositório
 
 ```bash
-git clone https://github.com/seu-usuario/Desenvolvimento-web-mobile.git
-cd Desenvolvimento-web-mobile
+git clone https://github.com/DaviMoreira27/desenvolvimento-web-mobile.git
+cd desenvolvimento-web-mobile
 ```
 
 ### Passo 2: Iniciar o Banco de Dados (Terminal 1)

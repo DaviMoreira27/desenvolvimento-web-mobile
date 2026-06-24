@@ -8,6 +8,10 @@ concurrency:
   group: pr-${{ github.event.pull_request.number }}
   cancel-in-progress: true
 
+permissions:
+  contents: read
+  pull-requests: write
+
 jobs:
   detect-changes:
     runs-on: ubuntu-latest
@@ -76,6 +80,14 @@ jobs:
           else
             npx jest --ci --forceExit
           fi
+
+      - name: Comment backend coverage on PR
+        if: steps.changed.outputs.has_src == 'true'
+        uses: MishaKav/jest-coverage-comment@40d7aed38d0fbaea266c34c12ab06356eec894eb # v1.0.33
+        with:
+          title: Backend coverage (changed files)
+          coverage-summary-path: backend/coverage/coverage-summary.json
+          unique-id-for-comment: backend
 
       - name: Enforce 80% coverage on changed files
         if: steps.changed.outputs.has_src == 'true'
@@ -167,6 +179,14 @@ jobs:
           else
             npx jest --ci --forceExit
           fi
+
+      - name: Comment frontend coverage on PR
+        if: steps.changed.outputs.has_src == 'true'
+        uses: MishaKav/jest-coverage-comment@40d7aed38d0fbaea266c34c12ab06356eec894eb # v1.0.33
+        with:
+          title: Frontend coverage (changed files)
+          coverage-summary-path: frontend/coverage/coverage-summary.json
+          unique-id-for-comment: frontend
 
       - name: Enforce 80% coverage on changed files
         if: steps.changed.outputs.has_src == 'true'
