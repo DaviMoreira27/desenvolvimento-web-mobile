@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react";
 import { useAuth } from "./auth/useAuth";
 import { apiFetch } from "../lib/api";
+import { useFetch } from "./useFetch";
 
 export type Meta = {
   id: number;
@@ -23,21 +23,8 @@ export interface UseMetasReturn {
 
 export function useMetas(): UseMetasReturn {
   const { token } = useAuth();
-  const [metas, setMetas] = useState<Meta[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!token) {
-      setIsLoading(false);
-      return;
-    }
-
-    apiFetch<Meta[]>("/api/metas", { token })
-      .then(setMetas)
-      .catch((e) => setError(e.message))
-      .finally(() => setIsLoading(false));
-  }, [token]);
+  const { data, setData: setMetas, isLoading, error } = useFetch<Meta[]>("/api/metas", token);
+  const metas = data ?? [];
 
   async function createMeta(payload: { titulo: string; descricao?: string }): Promise<Meta> {
     const nova = await apiFetch<Meta>("/api/metas", {
@@ -45,7 +32,7 @@ export function useMetas(): UseMetasReturn {
       body: JSON.stringify(payload),
       token: token ?? undefined,
     });
-    setMetas((prev) => [...prev, nova]);
+    setMetas((prev) => [...(prev ?? []), nova]);
     return nova;
   }
 
@@ -58,7 +45,7 @@ export function useMetas(): UseMetasReturn {
       body: JSON.stringify(payload),
       token: token ?? undefined,
     });
-    setMetas((prev) => prev.map((m) => (m.id === id ? atualizada : m)));
+    setMetas((prev) => (prev ?? []).map((m) => (m.id === id ? atualizada : m)));
     return atualizada;
   }
 
@@ -67,7 +54,7 @@ export function useMetas(): UseMetasReturn {
       method: "DELETE",
       token: token ?? undefined,
     });
-    setMetas((prev) => prev.filter((m) => m.id !== id));
+    setMetas((prev) => (prev ?? []).filter((m) => m.id !== id));
   }
 
   return { metas, isLoading, error, createMeta, updateMeta, deleteMeta };

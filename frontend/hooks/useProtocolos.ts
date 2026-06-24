@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react";
 import { useAuth } from "./auth/useAuth";
 import { apiFetch } from "../lib/api";
+import { useFetch } from "./useFetch";
 
 export type Protocolo = {
   id: number;
@@ -39,21 +39,11 @@ export type CriarProtocoloPayload = {
 
 export function useProtocolos() {
   const { token } = useAuth();
-  const [protocolos, setProtocolos] = useState<Protocolo[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!token) {
-      setIsLoading(false);
-      return;
-    }
-
-    apiFetch<Protocolo[]>("/api/protocolos", { token })
-      .then(setProtocolos)
-      .catch((e) => setError(e.message))
-      .finally(() => setIsLoading(false));
-  }, [token]);
+  const { data, setData: setProtocolos, isLoading, error } = useFetch<Protocolo[]>(
+    "/api/protocolos",
+    token
+  );
+  const protocolos = data ?? [];
 
   const createProtocolo = async (payload: CriarProtocoloPayload): Promise<void> => {
     const created = await apiFetch<Protocolo>("/api/protocolos", {
@@ -61,7 +51,7 @@ export function useProtocolos() {
       method: "POST",
       body: JSON.stringify(payload),
     });
-    setProtocolos((prev) => [...prev, created]);
+    setProtocolos((prev) => [...(prev ?? []), created]);
   };
 
   return { protocolos, isLoading, error, createProtocolo };
