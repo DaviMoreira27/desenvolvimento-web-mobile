@@ -229,16 +229,6 @@ jobs:
           [ "$FAILED" = "0" ] || { echo "Coverage check failed."; exit 1; }
           echo "All changed files meet the 80% coverage threshold."
 
-      - name: Setup Chrome
-        uses: browser-actions/setup-chrome@c785b87e244131f27c9f19c1a33e2ead956ab7ce # v1
-        id: setup-chrome
-        with:
-          chrome-version: stable
-          install-chromedriver: true
-
-      - name: Add chromedriver to PATH
-        run: echo "$(dirname '${{ steps.setup-chrome.outputs.chromedriver-path }}')" >> $GITHUB_PATH
-
       - name: Install selenium-side-runner
         run: npm install -g selenium-side-runner
 
@@ -246,5 +236,5 @@ jobs:
         run: |
           selenium-side-runner \
             --timeout 60000 \
-            -c "browserName=chrome goog:chromeOptions.binary=${{ steps.setup-chrome.outputs.chrome-path }} goog:chromeOptions.args=[--headless,--no-sandbox,--disable-dev-shm-usage,--disable-gpu,--window-size=1280,1000]" \
+            -c "browserName=chrome goog:chromeOptions.args=[--headless,--no-sandbox,--disable-dev-shm-usage,--disable-gpu,--window-size=1280,1000]" \
             frontend/web-mobile-project.side
