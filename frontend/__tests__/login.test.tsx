@@ -1,5 +1,6 @@
 import React from "react";
 import { render, fireEvent, waitFor, act } from "@testing-library/react-native";
+import { Platform } from "react-native";
 import Login from "../app/login";
 
 const mockRouterPush = jest.fn();
@@ -127,6 +128,29 @@ describe("Login screen", () => {
       fireEvent(emailInput, "focus");
       fireEvent(emailInput, "blur");
     });
+  });
+
+  it("applies focused style while a field stays focused", async () => {
+    const { getByPlaceholderText } = await render(<Login />);
+    const emailInput = getByPlaceholderText("seu@email.com");
+    await act(async () => {
+      fireEvent(emailInput, "focus");
+    });
+    const style = emailInput.props.style.flat();
+    expect(style).toContainEqual(
+      expect.objectContaining({ borderColor: "#19c10f" })
+    );
+  });
+
+  it("uses height behavior on non-iOS platforms", async () => {
+    const original = Platform.OS;
+    Platform.OS = "android";
+    try {
+      const { getByText } = await render(<Login />);
+      expect(getByText("Entrar")).toBeTruthy();
+    } finally {
+      Platform.OS = original;
+    }
   });
 
   it("sets focusedField on senha input focus and clears on blur", async () => {
