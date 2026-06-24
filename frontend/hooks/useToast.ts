@@ -1,5 +1,5 @@
 import { useContext } from "react";
-import { ToastContext, ToastItem, ToastType } from "./ToastContext";
+import { ToastContext, type ToastItem, type ToastType } from "./ToastContext";
 
 export interface UseToastReturn {
   toasts: ToastItem[];

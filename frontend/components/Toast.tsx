@@ -1,7 +1,7 @@
 import Animated, { FadeInLeft, FadeOutLeft } from "react-native-reanimated";
 import { StyleSheet, Text } from "react-native";
 import { VGTheme } from "@/constants/theme";
-import { ToastItem } from "@/hooks/ToastContext";
+import { type ToastItem } from "@/hooks/ToastContext";
 
 interface ToastProps {
   item: ToastItem;

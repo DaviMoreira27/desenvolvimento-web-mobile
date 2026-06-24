@@ -2,7 +2,7 @@ import { ActivityIndicator, FlatList, Platform, Pressable, StyleSheet, Text, Vie
 import { useLocalSearchParams } from "expo-router";
 import * as Linking from "expo-linking";
 import { useEffect, useRef } from "react";
-import { useDocumentosConsulta, DocumentoResponse } from "../../../hooks/useDocumentosConsulta";
+import { useDocumentosConsulta, type DocumentoResponse } from "../../../hooks/useDocumentosConsulta";
 import { VGTheme } from "../../../constants/theme";
 import { useToast } from "../../../hooks/useToast";
 
