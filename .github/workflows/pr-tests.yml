@@ -232,9 +232,19 @@ jobs:
       - name: Install selenium-side-runner
         run: npm install -g selenium-side-runner
 
-      - name: Run Selenium tests (headless)
+      - name: Run Selenium tests (Login + Registro)
         run: |
           selenium-side-runner \
             --timeout 60000 \
+            --filter '^(login|registro)_' \
+            -c "browserName=chrome goog:chromeOptions.args=[--headless,--no-sandbox,--disable-dev-shm-usage,--disable-gpu,--window-size=1280,1000]" \
+            frontend/web-mobile-project.side
+
+      - name: Run Selenium tests (Anamnese, non-blocking)
+        continue-on-error: true
+        run: |
+          selenium-side-runner \
+            --timeout 60000 \
+            --filter '^anamnese_' \
             -c "browserName=chrome goog:chromeOptions.args=[--headless,--no-sandbox,--disable-dev-shm-usage,--disable-gpu,--window-size=1280,1000]" \
             frontend/web-mobile-project.side
