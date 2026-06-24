@@ -15,10 +15,15 @@ import { useLogin } from "../hooks/auth/useLogin";
 export default function Login() {
   const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
-  const [emailFocused, setEmailFocused] = useState(false);
-  const [senhaFocused, setSenhaFocused] = useState(false);
+  const [focusedField, setFocusedField] = useState<string | null>(null);
   const [senhaVisivel, setSenhaVisivel] = useState(false);
   const { handleLogin, isLoading, error } = useLogin();
+
+  const inputStyle = (field: string, extra?: object) => [
+    styles.input,
+    extra,
+    focusedField === field && styles.inputFocused,
+  ];
 
   return (
     <KeyboardAvoidingView
@@ -45,9 +50,9 @@ export default function Login() {
           placeholder="seu@email.com"
           value={email}
           onChangeText={setEmail}
-          style={[styles.input, emailFocused && styles.inputFocused]}
-          onFocus={() => setEmailFocused(true)}
-          onBlur={() => setEmailFocused(false)}
+          style={inputStyle("email")}
+          onFocus={() => setFocusedField("email")}
+          onBlur={() => setFocusedField(null)}
           autoCapitalize="none"
           keyboardType="email-address"
           placeholderTextColor="#94a3b8"
@@ -60,13 +65,9 @@ export default function Login() {
             value={senha}
             onChangeText={setSenha}
             secureTextEntry={!senhaVisivel}
-            style={[
-              styles.input,
-              styles.inputWithToggle,
-              senhaFocused && styles.inputFocused,
-            ]}
-            onFocus={() => setSenhaFocused(true)}
-            onBlur={() => setSenhaFocused(false)}
+            style={inputStyle("senha", styles.inputWithToggle)}
+            onFocus={() => setFocusedField("senha")}
+            onBlur={() => setFocusedField(null)}
             placeholderTextColor="#94a3b8"
           />
           <Pressable
