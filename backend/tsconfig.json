@@ -9,6 +9,5 @@
     "resolveJsonModule": true,
     "skipLibCheck": true,
     "types": ["jest", "node"],
-    "ignoreDeprecations": "6.0"
   }
 }
