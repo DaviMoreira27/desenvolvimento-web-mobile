@@ -3,8 +3,8 @@
 [![PR Tests](https://github.com/DaviMoreira27/desenvolvimento-web-mobile/actions/workflows/pr-tests.yml/badge.svg)](https://github.com/DaviMoreira27/desenvolvimento-web-mobile/actions/workflows/pr-tests.yml)
 
 <!-- COVERAGE-BADGES:START -->
-![frontend coverage](https://img.shields.io/badge/frontend%20coverage-pending-lightgrey)
-![backend coverage](https://img.shields.io/badge/backend%20coverage-pending-lightgrey)
+![frontend coverage](https://img.shields.io/badge/frontend%20coverage-97%25-brightgreen)
+![backend coverage](https://img.shields.io/badge/backend%20coverage-91%25-brightgreen)
 <!-- COVERAGE-BADGES:END -->
 
 Aplicação fullstack de gerenciamento de consultas, protocolos e pagamentos para pacientes e médicos.
