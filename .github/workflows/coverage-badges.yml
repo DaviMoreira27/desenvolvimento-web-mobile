@@ -29,21 +29,14 @@ jobs:
         run: |
           npm ci
           npx jest --ci --forceExit --coverage \
-            --coverageReporters=json-summary \
-            --collectCoverageFrom='src/**/*.ts' \
-            --collectCoverageFrom='!src/**/*.d.ts'
+            --coverageReporters=json-summary
 
       - name: Frontend coverage
         working-directory: frontend
         run: |
           npm ci
           npx jest --ci --forceExit --coverage \
-            --coverageReporters=json-summary \
-            --collectCoverageFrom='app/**/*.{ts,tsx}' \
-            --collectCoverageFrom='components/**/*.{ts,tsx}' \
-            --collectCoverageFrom='hooks/**/*.{ts,tsx}' \
-            --collectCoverageFrom='lib/**/*.{ts,tsx}' \
-            --collectCoverageFrom='!**/*.d.ts'
+            --coverageReporters=json-summary
 
       - name: Update README badges
         run: node .github/scripts/update-coverage-badges.mjs
