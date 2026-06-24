@@ -99,8 +99,13 @@ describe("Login screen", () => {
 
   it("disables the login button when isLoading", async () => {
     mockLoginState.isLoading = true;
-    const { getByTestId, queryByText } = await render(<Login />);
-    expect(queryByText("Entrar")).toBeNull();
+    const { getByTestId } = await render(<Login />);
+    expect(getByTestId("login-button")).toBeDisabled();
+  });
+
+  it("keeps the login button enabled when not loading", async () => {
+    const { getByTestId } = await render(<Login />);
+    expect(getByTestId("login-button")).toBeEnabled();
   });
 
   it("displays error message when error is set", async () => {
@@ -121,25 +126,20 @@ describe("Login screen", () => {
     expect(mockRouterPush).toHaveBeenCalledWith("/register");
   });
 
-  it("sets focusedField on email input focus and clears on blur", async () => {
+  it("applies the focused border to email on focus and removes it on blur", async () => {
     const { getByPlaceholderText } = await render(<Login />);
     const emailInput = getByPlaceholderText("seu@email.com");
+    const focusedBorder = expect.objectContaining({ borderColor: "#19c10f" });
+
     await act(async () => {
       fireEvent(emailInput, "focus");
+    });
+    expect(emailInput.props.style.flat()).toContainEqual(focusedBorder);
+
+    await act(async () => {
       fireEvent(emailInput, "blur");
     });
-  });
-
-  it("applies focused style while a field stays focused", async () => {
-    const { getByPlaceholderText } = await render(<Login />);
-    const emailInput = getByPlaceholderText("seu@email.com");
-    await act(async () => {
-      fireEvent(emailInput, "focus");
-    });
-    const style = emailInput.props.style.flat();
-    expect(style).toContainEqual(
-      expect.objectContaining({ borderColor: "#19c10f" })
-    );
+    expect(emailInput.props.style.flat()).not.toContainEqual(focusedBorder);
   });
 
   it("uses height behavior on non-iOS platforms", async () => {
@@ -153,12 +153,19 @@ describe("Login screen", () => {
     }
   });
 
-  it("sets focusedField on senha input focus and clears on blur", async () => {
+  it("applies the focused border to senha on focus and removes it on blur", async () => {
     const { getByPlaceholderText } = await render(<Login />);
     const senhaInput = getByPlaceholderText("••••••••");
+    const focusedBorder = expect.objectContaining({ borderColor: "#19c10f" });
+
     await act(async () => {
       fireEvent(senhaInput, "focus");
+    });
+    expect(senhaInput.props.style.flat()).toContainEqual(focusedBorder);
+
+    await act(async () => {
       fireEvent(senhaInput, "blur");
     });
+    expect(senhaInput.props.style.flat()).not.toContainEqual(focusedBorder);
   });
 });

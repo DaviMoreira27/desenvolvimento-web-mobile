@@ -91,6 +91,7 @@ export default function Login() {
         </Pressable>
 
         <Pressable
+          testID="login-button"
           style={({ pressed }) => [
             styles.button,
             pressed && { opacity: 0.85 },
